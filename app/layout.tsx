@@ -20,7 +20,7 @@ export default function RootLayout({
       <body className={inter.className}>
         {children}
         <Script
-          src="https://unpkg.com/ml5@latest/dist/ml5.min.js"
+          src="https://unpkg.com/ml5@0.12.2/dist/ml5.min.js"
           strategy="beforeInteractive"
         />
       </body>
