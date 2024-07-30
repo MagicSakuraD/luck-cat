@@ -1,7 +1,8 @@
+"use client";
 import { useState, useEffect } from "react";
 import * as tf from "@tensorflow/tfjs";
 
-import { historyData } from "../data/historyData";
+import { thisData } from "../data/thisData";
 
 export default function PredictionPage() {
   const [model, setModel] = useState<any>(null);
@@ -20,19 +21,24 @@ export default function PredictionPage() {
           const nn = window.ml5.neuralNetwork({
             task: "regression",
             debug: true,
-
             learningRate: 0.02,
             hiddenUnits: 64,
           });
 
-          const modelLoaded = () => {
+          // // 加载本地保存的模型
+          // const modelPath = "/model/indexeddb___lottery-model.json"; // 本地模型的相对路径
+          // 使用 JSON 对象指定模型文件路径
+          const modelInfo = {
+            model: "/model/model.json",
+            metadata: "/model/model_meta.json",
+            weights: "/model/model.weights.bin",
+          };
+
+          nn.load(modelInfo, () => {
             console.log("Model loaded successfully");
             setModel(nn);
             makePrediction(nn);
-          };
-
-          // 加载保存的模型
-          nn.load("indexeddb://lottery-model", modelLoaded);
+          });
         } catch (err) {
           console.error("Error initializing:", err);
           setError("Error initializing model");
@@ -46,8 +52,7 @@ export default function PredictionPage() {
 
   const makePrediction = (loadedModel: any) => {
     // 准备输入数据
-    // 注意：这里假设我们有最近的历史数据。如果没有，你需要提供一种方式让用户输入数据。
-    const last23Entries = historyData.slice(0, 23);
+    const last23Entries = thisData.slice(0, 23);
     const inputData = last23Entries.flatMap((entry) => {
       const processedData = preprocessData([...entry.reds, entry.blue]);
       return [
@@ -107,7 +112,7 @@ export default function PredictionPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
       <div>
-        <h1 className="text-2xl font-bold mb-4">Lottery Prediction</h1>
+        <h1 className="text-2xl font-bold mb-4">Prediction</h1>
         {isLoading ? (
           <p>Loading model and making prediction...</p>
         ) : error ? (

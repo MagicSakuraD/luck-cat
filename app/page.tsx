@@ -21,15 +21,17 @@ export default function Home() {
           task: "regression",
           debug: true,
           learningRate: 0.01,
-          layers: [
-            { type: "dense", units: 128, activation: "relu" },
-            { type: "dropout", rate: 0.2 },
-            { type: "dense", units: 64, activation: "relu" },
-            { type: "dropout", rate: 0.2 },
-            { type: "dense", units: 32, activation: "relu" },
-            { type: "dropout", rate: 0.2 },
-            { type: "dense", units: 7, activation: "sigmoid" },
-          ],
+          // layers: [
+          //   { type: "dense", units: 256, activation: "relu" },
+          //   // { type: "dropout", rate: 0.1 },
+          //   { type: "dense", units: 128, activation: "relu" },
+
+          //   { type: "dense", units: 64, activation: "relu" },
+          //   { type: "dense", units: 32, activation: "relu" },
+          //   { type: "dense", units: 16, activation: "relu" },
+
+          //   { type: "dense", units: 7, activation: "softmax" },
+          // ],
         });
 
         setModel(nn);
@@ -57,9 +59,9 @@ export default function Home() {
           Math.round(value * max);
 
         // 添加数据
-        for (let i = historyData.length - 1; i >= 80; i--) {
+        for (let i = historyData.length - 1; i >= 23; i--) {
           const inputs: number[] = [];
-          for (let j = i; j > i - 80; j--) {
+          for (let j = i; j > i - 23; j--) {
             const processedData = preprocessData([
               ...historyData[j].reds,
               historyData[j].blue,
@@ -70,8 +72,8 @@ export default function Home() {
             );
           }
           const outputs = preprocessData([
-            ...historyData[i - 80].reds,
-            historyData[i - 80].blue,
+            ...historyData[i - 23].reds,
+            historyData[i - 23].blue,
           ]);
           const normalizedOutputs = [
             ...outputs.slice(0, 6).map((x) => normalize(x, 33)),
@@ -96,7 +98,7 @@ export default function Home() {
             onEpochEnd: async (epoch: number, logs: any) => {
               console.log(`Epoch ${epoch}: loss = ${logs.loss}`);
               if (logs.loss < 0.04) {
-                await model.save("indexeddb://lottery-model");
+                await model.save();
                 console.log(
                   `Model saved at epoch ${epoch} with loss ${logs.loss}`
                 );
@@ -111,7 +113,7 @@ export default function Home() {
         console.log("Model trained!");
 
         // 进行预测
-        const last10Entries = historyData.slice(0, 80);
+        const last10Entries = historyData.slice(0, 23);
         const inputData = last10Entries.flatMap((entry) => {
           const processedData = preprocessData([...entry.reds, entry.blue]);
           return [
@@ -165,7 +167,7 @@ export default function Home() {
       setIsSaving(true);
       setSaveStatus("Saving model...");
       try {
-        await model.save("indexeddb://lottery-model");
+        await model.save();
         setSaveStatus("Model saved successfully!");
       } catch (error) {
         console.error("Error saving model:", error);
