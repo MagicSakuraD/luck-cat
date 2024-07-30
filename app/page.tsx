@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import * as tf from "@tensorflow/tfjs";
+import { LeafyGreen } from "lucide-react";
 
 // 假设这是最近期的数据
 const historyData = [
@@ -59,6 +60,162 @@ const historyData = [
   { issue: "2024034", reds: [2, 9, 12, 19, 21, 31], blue: 4 },
   { issue: "2024033", reds: [6, 10, 11, 18, 20, 32], blue: 5 },
   { issue: "2024032", reds: [1, 3, 4, 11, 12, 21], blue: 16 },
+
+  {
+    issue: "2024031",
+    reds: [2, 5, 7, 13, 19, 26],
+    blue: 8,
+  },
+  {
+    issue: "2024030",
+    reds: [3, 6, 9, 15, 22, 28],
+    blue: 12,
+  },
+  {
+    issue: "2024029",
+    reds: [1, 4, 8, 16, 23, 30],
+    blue: 6,
+  },
+  {
+    issue: "2024028",
+    reds: [2, 5, 10, 17, 24, 31],
+    blue: 11,
+  },
+  {
+    issue: "2024027",
+    reds: [3, 6, 11, 18, 25, 32],
+    blue: 5,
+  },
+  {
+    issue: "2024026",
+    reds: [1, 3, 7, 10, 22, 33],
+    blue: 2,
+  },
+  {
+    issue: "2024025",
+    reds: [5, 9, 13, 20, 23, 28],
+    blue: 6,
+  },
+  {
+    issue: "2024024",
+    reds: [7, 10, 11, 15, 17, 21],
+    blue: 3,
+  },
+  {
+    issue: "2024023",
+    reds: [5, 7, 14, 17, 22, 32],
+    blue: 6,
+  },
+  {
+    issue: "2024022",
+    reds: [2, 4, 6, 7, 16, 29],
+    blue: 3,
+  },
+  {
+    issue: "2024021",
+    reds: [8, 13, 20, 25, 31, 32],
+    blue: 3,
+  },
+  {
+    issue: "2024020",
+    reds: [7, 14, 21, 22, 28, 33],
+    blue: 7,
+  },
+  {
+    issue: "2024019",
+    reds: [8, 12, 13, 17, 27, 29],
+    blue: 13,
+  },
+  {
+    issue: "2024018",
+    reds: [3, 8, 17, 18, 23, 31],
+    blue: 8,
+  },
+  {
+    issue: "2024017",
+    reds: [5, 18, 20, 24, 25, 26],
+    blue: 6,
+  },
+  {
+    issue: "2024016",
+    reds: [2, 4, 6, 7, 16, 29],
+    blue: 3,
+  },
+  {
+    issue: "2024015",
+    reds: [8, 13, 20, 25, 31, 32],
+    blue: 3,
+  },
+  {
+    issue: "2024014",
+    reds: [7, 14, 21, 22, 28, 33],
+    blue: 7,
+  },
+  {
+    issue: "2024013",
+    reds: [8, 12, 13, 17, 27, 29],
+    blue: 13,
+  },
+  {
+    issue: "2024012",
+    reds: [3, 8, 17, 18, 23, 31],
+    blue: 8,
+  },
+  {
+    issue: "2024011",
+    reds: [5, 18, 20, 24, 25, 26],
+    blue: 6,
+  },
+  {
+    issue: "2024010",
+    reds: [2, 4, 6, 7, 16, 29],
+    blue: 3,
+  },
+  {
+    issue: "2024009",
+    reds: [8, 13, 20, 25, 31, 32],
+    blue: 3,
+  },
+  {
+    issue: "2024008",
+    reds: [7, 14, 21, 22, 28, 33],
+    blue: 7,
+  },
+  {
+    issue: "2024007",
+    reds: [8, 12, 13, 17, 27, 29],
+    blue: 13,
+  },
+  {
+    issue: "2024006",
+    reds: [3, 8, 17, 18, 23, 31],
+    blue: 8,
+  },
+  {
+    issue: "2024005",
+    reds: [5, 18, 20, 24, 25, 26],
+    blue: 6,
+  },
+  {
+    issue: "2024004",
+    reds: [2, 4, 6, 7, 16, 29],
+    blue: 3,
+  },
+  {
+    issue: "2024003",
+    reds: [8, 13, 20, 25, 31, 32],
+    blue: 3,
+  },
+  {
+    issue: "2024002",
+    reds: [7, 14, 21, 22, 28, 33],
+    blue: 7,
+  },
+  {
+    issue: "2024001",
+    reds: [8, 12, 13, 17, 27, 29],
+    blue: 13,
+  },
 ];
 
 export default function Home() {
@@ -75,6 +232,23 @@ export default function Home() {
         const nn = window.ml5.neuralNetwork({
           task: "regression",
           debug: true,
+          layers: [
+            {
+              type: "dense",
+              units: 64,
+              activation: "relu",
+            },
+            {
+              type: "dense",
+              units: 32,
+              activation: "relu",
+            },
+            {
+              type: "dense",
+              units: 7,
+              activation: "sigmoid", // 使用sigmoid确保输出在0-1之间
+            },
+          ],
         });
 
         setModel(nn);
@@ -87,17 +261,42 @@ export default function Home() {
   useEffect(() => {
     const trainAndPredict = async () => {
       if (model) {
+        // 数据预处理函数
+        const preprocessData = (data: number[]) => {
+          const redBalls = data.slice(0, 6).sort((a, b) => a - b);
+          const blueBall = data[6];
+          return [...redBalls, blueBall];
+        };
+
+        // 归一化函数
+        const normalize = (value: number, max: number) => value / max;
+
+        // 反归一化函数
+        const denormalize = (value: number, max: number) =>
+          Math.round(value * max);
+
         // 添加数据
         for (let i = historyData.length - 1; i >= 10; i--) {
           const inputs: number[] = [];
           for (let j = i; j > i - 10; j--) {
-            inputs.unshift(...historyData[j].reds, historyData[j].blue);
+            const processedData = preprocessData([
+              ...historyData[j].reds,
+              historyData[j].blue,
+            ]);
+            inputs.push(
+              ...processedData.slice(0, 6).map((x) => normalize(x, 33)),
+              normalize(processedData[6], 16)
+            );
           }
-          const outputs = [
+          const outputs = preprocessData([
             ...historyData[i - 10].reds,
             historyData[i - 10].blue,
+          ]);
+          const normalizedOutputs = [
+            ...outputs.slice(0, 6).map((x) => normalize(x, 33)),
+            normalize(outputs[6], 16),
           ];
-          model.addData(inputs, outputs);
+          model.addData(inputs, normalizedOutputs);
         }
 
         // 调试信息
@@ -107,28 +306,38 @@ export default function Home() {
         model.normalizeData();
 
         // Callback to check confidence and save the model if it exceeds the threshold
-        const saveModelIfConfident = {
-          onEpochEnd: async (epoch: number, logs: any) => {
-            const confidence = logs?.val_accuracy || logs?.accuracy || 0; // Adjust based on your metric
-            if (confidence > 0.4) {
-              await model.save();
-              console.log(
-                `Model saved at epoch ${epoch} with confidence ${confidence}`
-              );
-            }
+
+        const trainingOptions = {
+          epochs: 200,
+          batchSize: 32,
+          learningRate: 0.001,
+          callbacks: {
+            onEpochEnd: async (epoch: number, logs: any) => {
+              console.log(`Epoch ${epoch}: loss = ${logs.loss}`);
+              if (logs.loss < 0.05) {
+                await model.save("indexeddb://lottery-model");
+                console.log(
+                  `Model saved at epoch ${epoch} with loss ${logs.loss}`
+                );
+                model.stopTraining = true;
+              }
+            },
           },
         };
 
-        await model.train({ epochs: 100, callbacks: saveModelIfConfident });
+        await model.train(trainingOptions);
 
         console.log("Model trained!");
 
         // 进行预测
         const last10Entries = historyData.slice(0, 10);
-        const inputData = last10Entries.flatMap((entry) => [
-          ...entry.reds,
-          entry.blue,
-        ]);
+        const inputData = last10Entries.flatMap((entry) => {
+          const processedData = preprocessData([...entry.reds, entry.blue]);
+          return [
+            ...processedData.slice(0, 6).map((x) => normalize(x, 33)),
+            normalize(processedData[6], 16),
+          ];
+        });
 
         model.predict(inputData, (err: any, results: any) => {
           if (err) {
@@ -136,33 +345,31 @@ export default function Home() {
           } else {
             console.log("Raw prediction results:", results);
 
-            let predictedNumbers;
-            if (Array.isArray(results)) {
-              predictedNumbers = results.map((r: any) => Math.round(r.value));
-            } else if (typeof results === "object") {
-              predictedNumbers = Object.values(results).map((value: any) =>
-                Math.round(value)
-              );
-            } else {
-              console.error("Unexpected results format:", results);
-              return;
-            }
-
-            if (predictedNumbers.length === 7) {
-              const adjustedPrediction = predictedNumbers.map((num, index) => {
-                if (index < 6) {
-                  return Math.max(1, Math.min(33, num));
-                } else {
-                  return Math.max(1, Math.min(16, num));
+            if (Array.isArray(results) && results.length === 7) {
+              const adjustedPrediction = results.map(
+                (r: any, index: number) => {
+                  if (index < 6) {
+                    return Math.max(1, Math.min(33, denormalize(r.value, 33)));
+                  } else {
+                    return Math.max(1, Math.min(16, denormalize(r.value, 16)));
+                  }
                 }
-              });
-
-              setPrediction(adjustedPrediction);
-            } else {
-              console.error(
-                "Prediction did not return 7 numbers:",
-                predictedNumbers
               );
+
+              // 确保红球升序且不重复
+              const redBalls = Array.from(
+                new Set(adjustedPrediction.slice(0, 6))
+              ).sort((a, b) => a - b);
+              while (redBalls.length < 6) {
+                let newNum = Math.floor(Math.random() * 33) + 1;
+                if (!redBalls.includes(newNum)) {
+                  redBalls.push(newNum);
+                }
+              }
+
+              setPrediction([...redBalls, adjustedPrediction[6]]);
+            } else {
+              console.error("Prediction did not return 7 numbers:", results);
             }
           }
         });
