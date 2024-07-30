@@ -23,11 +23,11 @@ export default function Home() {
           learningRate: 0.01,
           layers: [
             { type: "dense", units: 128, activation: "relu" },
-            // { type: "dropout", rate: 0.2 },
+            { type: "dropout", rate: 0.2 },
             { type: "dense", units: 64, activation: "relu" },
-            // { type: "dropout", rate: 0.2 },
+            { type: "dropout", rate: 0.2 },
             { type: "dense", units: 32, activation: "relu" },
-            // { type: "dropout", rate: 0.2 },
+            { type: "dropout", rate: 0.2 },
             { type: "dense", units: 7, activation: "sigmoid" },
           ],
         });
@@ -57,9 +57,9 @@ export default function Home() {
           Math.round(value * max);
 
         // 添加数据
-        for (let i = historyData.length - 1; i >= 47; i--) {
+        for (let i = historyData.length - 1; i >= 80; i--) {
           const inputs: number[] = [];
-          for (let j = i; j > i - 47; j--) {
+          for (let j = i; j > i - 80; j--) {
             const processedData = preprocessData([
               ...historyData[j].reds,
               historyData[j].blue,
@@ -70,8 +70,8 @@ export default function Home() {
             );
           }
           const outputs = preprocessData([
-            ...historyData[i - 47].reds,
-            historyData[i - 47].blue,
+            ...historyData[i - 80].reds,
+            historyData[i - 80].blue,
           ]);
           const normalizedOutputs = [
             ...outputs.slice(0, 6).map((x) => normalize(x, 33)),
@@ -111,7 +111,7 @@ export default function Home() {
         console.log("Model trained!");
 
         // 进行预测
-        const last10Entries = historyData.slice(0, 47);
+        const last10Entries = historyData.slice(0, 80);
         const inputData = last10Entries.flatMap((entry) => {
           const processedData = preprocessData([...entry.reds, entry.blue]);
           return [
