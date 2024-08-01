@@ -20,17 +20,28 @@ export default function Home() {
         const nn = window.ml5.neuralNetwork({
           task: "regression",
           debug: true,
-          learningRate: 0.01,
+          learningRate: 0.07, // 降低学习率
           // layers: [
-          //   { type: "dense", units: 256, activation: "relu" },
-          //   // { type: "dropout", rate: 0.1 },
-          //   { type: "dense", units: 128, activation: "relu" },
-
-          //   { type: "dense", units: 64, activation: "relu" },
-          //   { type: "dense", units: 32, activation: "relu" },
-          //   { type: "dense", units: 16, activation: "relu" },
-
-          //   { type: "dense", units: 7, activation: "softmax" },
+          //   {
+          //     type: "dense",
+          //     units: 128,
+          //     activation: "relu",
+          //   },
+          //   {
+          //     type: "dense",
+          //     units: 64,
+          //     activation: "relu",
+          //   },
+          //   {
+          //     type: "dense",
+          //     units: 16,
+          //     activation: "relu",
+          //   },
+          //   {
+          //     type: "dense",
+          //     units: 7,
+          //     activation: "linear", // 或者 "relu" 如果输出总是非负的
+          //   },
           // ],
         });
 
@@ -59,9 +70,9 @@ export default function Home() {
           Math.round(value * max);
 
         // 添加数据
-        for (let i = historyData.length - 1; i >= 23; i--) {
+        for (let i = historyData.length - 1; i >= 27; i--) {
           const inputs: number[] = [];
-          for (let j = i; j > i - 23; j--) {
+          for (let j = i; j > i - 27; j--) {
             const processedData = preprocessData([
               ...historyData[j].reds,
               historyData[j].blue,
@@ -72,14 +83,16 @@ export default function Home() {
             );
           }
           const outputs = preprocessData([
-            ...historyData[i - 23].reds,
-            historyData[i - 23].blue,
+            ...historyData[i - 27].reds,
+            historyData[i - 27].blue,
           ]);
           const normalizedOutputs = [
             ...outputs.slice(0, 6).map((x) => normalize(x, 33)),
             normalize(outputs[6], 16),
           ];
+
           model.addData(inputs, normalizedOutputs);
+          // 在添加数据时使用
         }
 
         // 调试信息
@@ -92,7 +105,7 @@ export default function Home() {
 
         const trainingOptions = {
           epochs: 200,
-          batchSize: 32,
+          // batchSize: 64,
 
           callbacks: {
             onEpochEnd: async (epoch: number, logs: any) => {
@@ -113,7 +126,7 @@ export default function Home() {
         console.log("Model trained!");
 
         // 进行预测
-        const last10Entries = historyData.slice(0, 23);
+        const last10Entries = historyData.slice(0, 27);
         const inputData = last10Entries.flatMap((entry) => {
           const processedData = preprocessData([...entry.reds, entry.blue]);
           return [
@@ -194,7 +207,7 @@ export default function Home() {
         <button
           onClick={handleSaveModel}
           disabled={isSaving || !model}
-          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400"
+          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-270 disabled:bg-gray-400"
         >
           {isSaving ? "Saving..." : "Save Model"}
         </button>

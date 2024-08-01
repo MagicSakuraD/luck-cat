@@ -5,7 +5,7 @@
 // const data = [];
 
 // // 遍历表格行
-// rows.forEach(row => {
+// rows.forEach((row) => {
 //   const cells = row.querySelectorAll("td");
 
 //   // 提取期号
@@ -30,7 +30,7 @@
 // });
 
 // // 格式化输出数据
-// const formattedData = data.map(item => JSON.stringify(item)).join(',\n');
+// const formattedData = data.map((item) => JSON.stringify(item)).join(",\n");
 
 // // 打印格式化的数据到控制台
 // console.log("[\n" + formattedData + "\n]");
