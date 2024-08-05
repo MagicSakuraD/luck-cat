@@ -9,40 +9,51 @@ export default function Home() {
   const [prediction, setPrediction] = useState<number[] | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveStatus, setSaveStatus] = useState<string>("");
+  const trainNumber = 24;
 
   useEffect(() => {
     const initializeModel = async () => {
       if (typeof window !== "undefined" && window.ml5) {
-        // 确保 TensorFlow.js 已经初始化
         await tf.ready();
 
         // 创建 ml5.js 模型
         const nn = window.ml5.neuralNetwork({
           task: "regression",
           debug: true,
-          learningRate: 0.07, // 降低学习率
-          // layers: [
-          //   {
-          //     type: "dense",
-          //     units: 128,
-          //     activation: "relu",
-          //   },
-          //   {
-          //     type: "dense",
-          //     units: 64,
-          //     activation: "relu",
-          //   },
-          //   {
-          //     type: "dense",
-          //     units: 16,
-          //     activation: "relu",
-          //   },
-          //   {
-          //     type: "dense",
-          //     units: 7,
-          //     activation: "linear", // 或者 "relu" 如果输出总是非负的
-          //   },
-          // ],
+          learningRate: 0.001, // 可以尝试较低的学习率
+          layers: [
+            { type: "dense", units: 512, activation: "relu" }, // 增加神经元数量
+            {
+              type: "dense",
+              units: 256, // 第一隐藏层神经元数量
+              activation: "relu",
+            },
+            {
+              type: "dense",
+              units: 128, // 第二隐藏层神经元数量
+              activation: "relu",
+            },
+            {
+              type: "dense",
+              units: 64, // 第三隐藏层神经元数量
+              activation: "relu",
+            },
+            {
+              type: "dense",
+              units: 32, // 第四隐藏层神经元数量
+              activation: "relu",
+            },
+            {
+              type: "dense",
+              units: 16, // 第五隐藏层神经元数量
+              activation: "relu",
+            },
+            {
+              type: "dense",
+              units: 7, // 输出层神经元数量
+              activation: "linear",
+            },
+          ],
         });
 
         setModel(nn);
@@ -52,61 +63,91 @@ export default function Home() {
     initializeModel();
   }, []);
 
+  // 计算数字出现频率并分配权重
+  const calculateWeights = (
+    historyData: { reds: number[]; blue: number }[]
+  ) => {
+    const redBallCounts = Array(33).fill(0);
+    const blueBallCounts = Array(16).fill(0);
+
+    for (let i = 0; i < trainNumber; i++) {
+      historyData[i].reds.forEach((num: number) => {
+        redBallCounts[num - 1] += 1 + trainNumber;
+      });
+      blueBallCounts[historyData[i].blue - 1] += 1;
+    }
+
+    // 归一化权重
+    const redBallWeights = redBallCounts.map(
+      (count) => count / (2 * trainNumber)
+    );
+    const blueBallWeights = blueBallCounts.map((count) => count / trainNumber);
+
+    return { redBallWeights, blueBallWeights };
+  };
+
+  // 调整输入数据以反映权重
+  const adjustWithWeights = (data: any[], weights: number[]) => {
+    return data.map(
+      (value: number, index: string | number) =>
+        value * weights[index as number]
+    );
+  };
+
   useEffect(() => {
     const trainAndPredict = async () => {
       if (model) {
-        // 数据预处理函数
         const preprocessData = (data: number[]) => {
           const redBalls = data.slice(0, 6).sort((a, b) => a - b);
           const blueBall = data[6];
           return [...redBalls, blueBall];
         };
 
-        // 归一化函数
         const normalize = (value: number, max: number) => value / max;
-
-        // 反归一化函数
         const denormalize = (value: number, max: number) =>
           Math.round(value * max);
 
+        // 计算权重
+        const { redBallWeights, blueBallWeights } =
+          calculateWeights(historyData);
+
         // 添加数据
-        for (let i = historyData.length - 1; i >= 27; i--) {
-          const inputs: number[] = [];
-          for (let j = i; j > i - 27; j--) {
-            const processedData = preprocessData([
+        for (let i = historyData.length - 1; i >= trainNumber; i--) {
+          let inputs = [];
+          for (let j = i; j > i - trainNumber; j--) {
+            let processedData = preprocessData([
               ...historyData[j].reds,
               historyData[j].blue,
             ]);
-            inputs.push(
-              ...processedData.slice(0, 6).map((x) => normalize(x, 33)),
-              normalize(processedData[6], 16)
-            );
-          }
-          const outputs = preprocessData([
-            ...historyData[i - 27].reds,
-            historyData[i - 27].blue,
-          ]);
-          const normalizedOutputs = [
-            ...outputs.slice(0, 6).map((x) => normalize(x, 33)),
-            normalize(outputs[6], 16),
-          ];
 
-          model.addData(inputs, normalizedOutputs);
-          // 在添加数据时使用
+            let adjustedData = adjustWithWeights(
+              processedData.slice(0, 6).map((x) => normalize(x, 33)),
+              redBallWeights
+            );
+            let adjustedBlueBall =
+              normalize(processedData[6], 16) *
+              blueBallWeights[processedData[6] - 1];
+
+            inputs.push(...adjustedData, adjustedBlueBall);
+          }
+          let outputs = preprocessData([
+            ...historyData[i - trainNumber].reds,
+            historyData[i - trainNumber].blue,
+          ]);
+          let adjustedOutputs = adjustWithWeights(
+            outputs.slice(0, 6).map((x) => normalize(x, 33)),
+            redBallWeights
+          );
+          let adjustedBlueOutput =
+            normalize(outputs[6], 16) * blueBallWeights[outputs[6] - 1];
+
+          model.addData(inputs, [...adjustedOutputs, adjustedBlueOutput]);
         }
 
-        // 调试信息
-        console.log("Added data to model:", model.data);
-
-        // 训练模型
         model.normalizeData();
 
-        // Callback to check confidence and save the model if it exceeds the threshold
-
         const trainingOptions = {
-          epochs: 200,
-          // batchSize: 64,
-
+          epochs: 100,
           callbacks: {
             onEpochEnd: async (epoch: number, logs: any) => {
               console.log(`Epoch ${epoch}: loss = ${logs.loss}`);
@@ -122,11 +163,10 @@ export default function Home() {
         };
 
         await model.train(trainingOptions);
-
         console.log("Model trained!");
 
         // 进行预测
-        const last10Entries = historyData.slice(0, 27);
+        const last10Entries = historyData.slice(0, trainNumber);
         const inputData = last10Entries.flatMap((entry) => {
           const processedData = preprocessData([...entry.reds, entry.blue]);
           return [
