@@ -21,8 +21,8 @@ export default function PredictionPage() {
           const nn = window.ml5.neuralNetwork({
             task: "regression",
             debug: true,
-            learningRate: 0.07,
-            hiddenUnits: 64,
+            // learningRate: 0.07,
+            // hiddenUnits: 64,
           });
 
           // // 加载本地保存的模型
@@ -52,7 +52,7 @@ export default function PredictionPage() {
 
   const makePrediction = (loadedModel: any) => {
     // 准备输入数据
-    const last23Entries = thisData.slice(0, 27);
+    const last23Entries = thisData.slice(0, 36);
     const inputData = last23Entries.flatMap((entry) => {
       const processedData = preprocessData([...entry.reds, entry.blue]);
       return [
@@ -62,7 +62,7 @@ export default function PredictionPage() {
     });
 
     // 进行预测
-    loadedModel.predict(inputData, (err: any, results: any) => {
+    loadedModel.predict(inputData, (results: any, err: any) => {
       if (err) {
         console.error(err);
         setError("Error making prediction");

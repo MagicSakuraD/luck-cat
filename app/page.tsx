@@ -3,13 +3,14 @@ import { useEffect, useState } from "react";
 import * as tf from "@tensorflow/tfjs";
 
 import { historyData } from "./data/historyData";
+import ModeToggle from "@/components/mode-toggle";
 
 export default function Home() {
   const [model, setModel] = useState<any>(null);
   const [prediction, setPrediction] = useState<number[] | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveStatus, setSaveStatus] = useState<string>("");
-  const trainNumber = 24;
+  const trainNumber = 36;
 
   useEffect(() => {
     const initializeModel = async () => {
@@ -20,9 +21,9 @@ export default function Home() {
         const nn = window.ml5.neuralNetwork({
           task: "regression",
           debug: true,
-          learningRate: 0.001, // 可以尝试较低的学习率
+          learningRate: 0.007, // 可以尝试较低的学习率
           layers: [
-            { type: "dense", units: 512, activation: "relu" }, // 增加神经元数量
+            // { type: "dense", units: 512, activation: "relu" }, // 增加神经元数量
             {
               type: "dense",
               units: 256, // 第一隐藏层神经元数量
@@ -63,7 +64,6 @@ export default function Home() {
     initializeModel();
   }, []);
 
-  // 计算数字出现频率并分配权重
   const calculateWeights = (
     historyData: { reds: number[]; blue: number }[]
   ) => {
@@ -72,15 +72,13 @@ export default function Home() {
 
     for (let i = 0; i < trainNumber; i++) {
       historyData[i].reds.forEach((num: number) => {
-        redBallCounts[num - 1] += 1 + trainNumber;
+        redBallCounts[num - 1] += 1;
       });
       blueBallCounts[historyData[i].blue - 1] += 1;
     }
 
-    // 归一化权重
-    const redBallWeights = redBallCounts.map(
-      (count) => count / (2 * trainNumber)
-    );
+    // 平方根变换权重
+    const redBallWeights = redBallCounts.map((count) => count / trainNumber);
     const blueBallWeights = blueBallCounts.map((count) => count / trainNumber);
 
     return { redBallWeights, blueBallWeights };
@@ -147,69 +145,90 @@ export default function Home() {
         model.normalizeData();
 
         const trainingOptions = {
-          epochs: 100,
-          callbacks: {
-            onEpochEnd: async (epoch: number, logs: any) => {
-              console.log(`Epoch ${epoch}: loss = ${logs.loss}`);
-              if (logs.loss < 0.04) {
-                await model.save();
-                console.log(
-                  `Model saved at epoch ${epoch} with loss ${logs.loss}`
-                );
-                model.stopTraining = true;
-              }
-            },
-          },
+          epochs: 50, // 增加 epochs 数量以确保充分训练
+          batchSize: 32, // 调整批量大小以加快训练速度
+          shuffle: true, // 在每个 epoch 之前打乱数据
+          validationSplit: 0.3, // 使用 20% 的数据进行验证
+          // shuffle: true,
+          // whileTraining: [
+          //   {
+          //     onEpochEnd: (
+          //       epoch: number,
+          //       logs: { loss: number; acc: number }
+          //     ) => {
+          //       console.log(
+          //         `Epoch ${epoch + 1} completed. Loss: ${logs.loss.toFixed(
+          //           4
+          //         )}, Accuracy: ${logs.acc.toFixed(4)}`
+          //       );
+          //     },
+          //   },
+          // ],
         };
 
-        await model.train(trainingOptions);
-        console.log("Model trained!");
+        const finishedTraining = () => {
+          console.log("Model trained!");
+          makePrediction(preprocessData, normalize, denormalize);
+        };
 
-        // 进行预测
-        const last10Entries = historyData.slice(0, trainNumber);
-        const inputData = last10Entries.flatMap((entry) => {
-          const processedData = preprocessData([...entry.reds, entry.blue]);
-          return [
-            ...processedData.slice(0, 6).map((x) => normalize(x, 33)),
-            normalize(processedData[6], 16),
-          ];
-        });
-
-        model.predict(inputData, (err: any, results: any) => {
-          if (err) {
-            console.error(err);
-          } else {
-            console.log("Raw prediction results:", results);
-
-            if (Array.isArray(results) && results.length === 7) {
-              const adjustedPrediction = results.map(
-                (r: any, index: number) => {
-                  if (index < 6) {
-                    return Math.max(1, Math.min(33, denormalize(r.value, 33)));
-                  } else {
-                    return Math.max(1, Math.min(16, denormalize(r.value, 16)));
-                  }
-                }
-              );
-
-              // 确保红球升序且不重复
-              const redBalls = Array.from(
-                new Set(adjustedPrediction.slice(0, 6))
-              ).sort((a, b) => a - b);
-              while (redBalls.length < 6) {
-                let newNum = Math.floor(Math.random() * 33) + 1;
-                if (!redBalls.includes(newNum)) {
-                  redBalls.push(newNum);
-                }
-              }
-
-              setPrediction([...redBalls, adjustedPrediction[6]]);
-            } else {
-              console.error("Prediction did not return 7 numbers:", results);
-            }
-          }
-        });
+        await model.train(trainingOptions, finishedTraining);
       }
+    };
+
+    const makePrediction = (
+      preprocessData: { (data: number[]): number[]; (arg0: number[]): any },
+      normalize: {
+        (value: number, max: number): number;
+        (arg0: number, arg1: number): any;
+      },
+      denormalize: {
+        (value: number, max: number): number;
+        (arg0: any, arg1: number): number;
+      }
+    ) => {
+      // 进行预测
+      const lastEntries = historyData.slice(0, trainNumber);
+      const inputData = lastEntries.flatMap((entry) => {
+        const processedData = preprocessData([...entry.reds, entry.blue]);
+        return [
+          ...processedData.slice(0, 6).map((x) => normalize(x, 33)),
+          normalize(processedData[6], 16),
+        ];
+      });
+
+      model.predict(inputData, (results: any, err: any) => {
+        console.log("Prediction results:", inputData, results, err);
+        if (err) {
+          console.error(err, "something went wrong");
+        } else {
+          console.log("Raw prediction results:", results);
+
+          if (Array.isArray(results) && results.length === 7) {
+            const adjustedPrediction = results.map((r: any, index: number) => {
+              if (index < 6) {
+                return Math.max(1, Math.min(33, denormalize(r.value, 33)));
+              } else {
+                return Math.max(1, Math.min(16, denormalize(r.value, 16)));
+              }
+            });
+
+            // 确保红球升序且不重复
+            const redBalls = Array.from(
+              new Set(adjustedPrediction.slice(0, 6))
+            ).sort((a, b) => a - b);
+            while (redBalls.length < 6) {
+              let newNum = Math.floor(Math.random() * 33) + 1;
+              if (!redBalls.includes(newNum)) {
+                redBalls.push(newNum);
+              }
+            }
+
+            setPrediction([...redBalls, adjustedPrediction[6]]);
+          } else {
+            console.error("Prediction did not return 7 numbers:", results);
+          }
+        }
+      });
     };
 
     trainAndPredict();
