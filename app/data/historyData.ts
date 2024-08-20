@@ -1,5 +1,6 @@
 // 假设这是最近期的数据
 export const historyData = [
+  // { issue: "24095", reds: [4, 6, 9, 14, 16, 21], blue: 3 },
   { issue: "24094", reds: [6, 13, 17, 22, 25, 27], blue: 9 },
   { issue: "24093", reds: [1, 5, 7, 11, 12, 15], blue: 12 },
   { issue: "24092", reds: [3, 8, 11, 12, 18, 29], blue: 5 },

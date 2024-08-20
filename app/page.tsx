@@ -21,7 +21,7 @@ export default function Home() {
         const nn = window.ml5.neuralNetwork({
           task: "regression",
           debug: true,
-          learningRate: 0.001, // 可以尝试较低的学习率
+          learningRate: 0.0037, // 可以尝试较低的学习率
           layers: [
             {
               type: "dense",
