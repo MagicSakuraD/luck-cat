@@ -21,7 +21,7 @@ export default function Home() {
         const nn = window.ml5.neuralNetwork({
           task: "regression",
           debug: true,
-          learningRate: 0.0037, // 可以尝试较低的学习率
+          learningRate: 0.001, // 可以尝试较低的学习率
           layers: [
             {
               type: "dense",
@@ -151,7 +151,7 @@ export default function Home() {
         model.normalizeData();
 
         const trainingOptions = {
-          epochs: 110, // 增加 epochs 数量以确保充分训练
+          epochs: 10, // 增加 epochs 数量以确保充分训练
           batchSize: 16, // 调整批量大小以加快训练速度
           shuffle: true, // 在每个 epoch 之前打乱数据
           validationSplit: 0.2, // 使用 20% 的数据进行验证

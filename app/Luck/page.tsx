@@ -52,7 +52,7 @@ export default function PredictionPage() {
 
   const makePrediction = (loadedModel: any) => {
     // 准备输入数据
-    const last23Entries = thisData.slice(0, 36);
+    const last23Entries = Array(36).fill(thisData).flat();
     const inputData = last23Entries.flatMap((entry) => {
       const processedData = preprocessData([...entry.reds, entry.blue]);
       return [
