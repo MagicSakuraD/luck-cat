@@ -10,7 +10,7 @@ export default function Home() {
   const [prediction, setPrediction] = useState<number[] | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveStatus, setSaveStatus] = useState<string>("");
-  const trainNumber = 36;
+  const trainNumber = 47;
 
   useEffect(() => {
     const initializeModel = async () => {
@@ -21,11 +21,11 @@ export default function Home() {
         const nn = window.ml5.neuralNetwork({
           task: "regression",
           debug: true,
-          learningRate: 0.003, // 可以尝试较低的学习率
+          learningRate: 0.001, // 可以尝试较低的学习率
           layers: [
             {
               type: "dense",
-              units: 256, // 第一隐藏层神经元数量
+              units: 252, // 第一隐藏层神经元数量
               activation: "relu",
             },
             {
@@ -77,16 +77,8 @@ export default function Home() {
     }
 
     // 权重
-    const maxRedBallCount = Math.max(...redBallCounts);
-    const maxBlueBallCount = Math.max(...blueBallCounts);
-
-    const redBallWeights = redBallCounts.map(
-      (count) => (maxRedBallCount - count + 1) / maxRedBallCount
-    );
-    const blueBallWeights = blueBallCounts.map(
-      (count) => (maxBlueBallCount - count + 1) / maxBlueBallCount
-    );
-
+    const redBallWeights = redBallCounts.map((count) => count / trainNumber);
+    const blueBallWeights = blueBallCounts.map((count) => count / trainNumber);
     return { redBallWeights, blueBallWeights };
   };
 
@@ -151,26 +143,11 @@ export default function Home() {
         model.normalizeData();
 
         const trainingOptions = {
-          epochs: 200, // 增加 epochs 数量以确保充分训练
+          epochs: 217, // 增加 epochs 数量以确保充分训练
           batchSize: 32, // 调整批量大小以加快训练速度
           // shuffle: true, // 在每个 epoch 之前打乱数据
           validationSplit: 0.2, // 使用 20% 的数据进行验证
           earlyStopping: true, // 早停技术
-          // shuffle: true,
-          // whileTraining: [
-          //   {
-          //     onEpochEnd: (
-          //       epoch: number,
-          //       logs: { loss: number; acc: number }
-          //     ) => {
-          //       console.log(
-          //         `Epoch ${epoch + 1} completed. Loss: ${logs.loss.toFixed(
-          //           4
-          //         )}, Accuracy: ${logs.acc.toFixed(4)}`
-          //       );
-          //     },
-          //   },
-          // ],
         };
 
         const finishedTraining = () => {
@@ -209,7 +186,6 @@ export default function Home() {
           console.error(err, "something went wrong");
         } else {
           console.log("Raw prediction results:", results);
-
           if (Array.isArray(results) && results.length === 7) {
             const adjustedPrediction = results.map((r: any, index: number) => {
               if (index < 6) {
@@ -265,9 +241,8 @@ export default function Home() {
         <h1>Prediction</h1>
         {prediction && (
           <p>
-            Predicted numbers: Red balls: {prediction.slice(0, 6).join(", ")}{" "}
-            <br />
-            Blue ball: {prediction[6]}
+            Red: {prediction.slice(0, 6).join(", ")} <br />
+            Blue: {prediction[6]}
           </p>
         )}
         <button
