@@ -21,7 +21,7 @@ export default function PredictionPage() {
           const nn = window.ml5.neuralNetwork({
             task: "regression",
             debug: true,
-            // learningRate: 0.07,
+            learningRate: 0.0001,
             // hiddenUnits: 64,
           });
 
@@ -52,7 +52,7 @@ export default function PredictionPage() {
 
   const makePrediction = (loadedModel: any) => {
     // 准备输入数据
-    const lastEntries = thisData.slice(0, 36);
+    const lastEntries = thisData.slice(0, 27);
     const inputData = lastEntries.flatMap((entry) => {
       const processedData = preprocessData([...entry.reds, entry.blue]);
       return [

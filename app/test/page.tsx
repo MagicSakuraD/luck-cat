@@ -7,19 +7,14 @@ const Camera = () => {
   const captureCanvasRef = useRef<HTMLCanvasElement>(null);
   const displayCanvasRef = useRef<HTMLCanvasElement>(null);
   const [socket, setSocket] = useState<WebSocket | null>(null);
-  const timeoutIdRef = useRef<NodeJS.Timeout | null>(null); // 用于存储 setTimeout ID
 
-  // Get video stream
-  const getVideo = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 640, height: 480 },
-      });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
-    } catch (err) {
-      console.error("Error accessing the camera: ", err);
+  // Get video from file input
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && videoRef.current) {
+      const url = URL.createObjectURL(file);
+      videoRef.current.src = url;
+      videoRef.current.play();
     }
   };
 
@@ -27,21 +22,9 @@ const Camera = () => {
     const ws = new WebSocket("ws://localhost:8000/ws");
     setSocket(ws);
 
-    getVideo();
-
-    // Clean up
     return () => {
-      const video = videoRef.current;
-      if (video && video.srcObject) {
-        const stream = video.srcObject as MediaStream;
-        const tracks = stream.getTracks();
-        tracks.forEach((track) => track.stop());
-      }
       if (ws) {
         ws.close();
-      }
-      if (timeoutIdRef.current !== null) {
-        clearTimeout(timeoutIdRef.current); // 取消 setTimeout
       }
     };
   }, []);
@@ -60,7 +43,7 @@ const Camera = () => {
           socket.send(imageData);
         }
       }
-      timeoutIdRef.current = setTimeout(sendFrame, 100); // 每200ms发送一帧
+      setTimeout(sendFrame, 100); // 每100ms发送一帧
     };
 
     socket.onopen = () => {
@@ -90,19 +73,14 @@ const Camera = () => {
     socket.onclose = () => {
       console.log("WebSocket disconnected");
     };
-
-    return () => {
-      if (timeoutIdRef.current !== null) {
-        clearTimeout(timeoutIdRef.current); // 取消 setTimeout
-      }
-    };
   }, [socket]);
 
   return (
     <div>
-      <h2>Processed Camera Feed</h2>
+      <h2>Processed Video Feed</h2>
+      <input type="file" accept="video/*" onChange={handleFileChange} />
       <video ref={videoRef} autoPlay playsInline style={{ display: "none" }} />
-      <div className="flex flex-row ">
+      <div className="flex flex-row">
         <canvas ref={captureCanvasRef} width={640} height={480} />
         <canvas
           ref={displayCanvasRef}

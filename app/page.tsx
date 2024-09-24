@@ -10,7 +10,7 @@ export default function Home() {
   const [prediction, setPrediction] = useState<number[] | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveStatus, setSaveStatus] = useState<string>("");
-  const trainNumber = 47;
+  const trainNumber = 27;
 
   useEffect(() => {
     const initializeModel = async () => {
@@ -21,11 +21,11 @@ export default function Home() {
         const nn = window.ml5.neuralNetwork({
           task: "regression",
           debug: true,
-          learningRate: 0.001, // 可以尝试较低的学习率
+          learningRate: 0.0001, // 可以尝试较低的学习率
           layers: [
             {
               type: "dense",
-              units: 252, // 第一隐藏层神经元数量
+              units: 256, // 第一隐藏层神经元数量
               activation: "relu",
             },
             {
@@ -87,6 +87,7 @@ export default function Home() {
     return data.map(
       (value: number, index: string | number) =>
         value * weights[index as number]
+      // value * 1
     );
   };
 
@@ -143,8 +144,8 @@ export default function Home() {
         model.normalizeData();
 
         const trainingOptions = {
-          epochs: 217, // 增加 epochs 数量以确保充分训练
-          batchSize: 32, // 调整批量大小以加快训练速度
+          epochs: 110, // 增加 epochs 数量以确保充分训练
+          batchSize: 28, // 调整批量大小以加快训练速度
           // shuffle: true, // 在每个 epoch 之前打乱数据
           validationSplit: 0.2, // 使用 20% 的数据进行验证
           earlyStopping: true, // 早停技术
@@ -196,17 +197,23 @@ export default function Home() {
             });
 
             // 确保红球升序且不重复
-            const redBalls = Array.from(
-              new Set(adjustedPrediction.slice(0, 6))
-            ).sort((a, b) => a - b);
-            while (redBalls.length < 6) {
-              let newNum = Math.floor(Math.random() * 33) + 1;
-              if (!redBalls.includes(newNum)) {
-                redBalls.push(newNum);
-              }
-            }
+            // const redBalls = Array.from(
+            //   new Set(adjustedPrediction.slice(0, 6))
+            // ).sort((a, b) => a - b);
+            // while (redBalls.length < 6) {
+            //   let newNum = Math.floor(Math.random() * 33) + 1;
+            //   if (!redBalls.includes(newNum)) {
+            //     redBalls.push(newNum);
+            //   }
+            // }
+            const redBalls = adjustedPrediction.slice(0, 6);
 
             setPrediction([...redBalls, adjustedPrediction[6]]);
+            console.log(
+              "Adjusted prediction:",
+              redBalls,
+              adjustedPrediction[6]
+            );
           } else {
             console.error("Prediction did not return 7 numbers:", results);
           }
