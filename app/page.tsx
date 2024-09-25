@@ -5,12 +5,25 @@ import * as tf from "@tensorflow/tfjs";
 import { historyData } from "./data/historyData";
 import ModeToggle from "@/components/mode-toggle";
 
+// 添加 Prophet 预测结果
+const prophetPredictions = {
+  blue: { yhat: 7.817406, yhat_lower: 1.813098, yhat_upper: 16.058283 },
+  red: [
+    { yhat: 4.369632, yhat_lower: 0.021479, yhat_upper: 9.143139 },
+    { yhat: 8.563668, yhat_lower: 2.007665, yhat_upper: 14.364846 },
+    { yhat: 14.306099, yhat_lower: 7.23877, yhat_upper: 20.787135 },
+    { yhat: 19.705636, yhat_lower: 13.069152, yhat_upper: 26.610567 },
+    { yhat: 23.826644, yhat_lower: 17.426201, yhat_upper: 30.416162 },
+    { yhat: 29.145027, yhat_lower: 24.383593, yhat_upper: 33.148594 },
+  ],
+};
+
 export default function Home() {
   const [model, setModel] = useState<any>(null);
   const [prediction, setPrediction] = useState<number[] | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveStatus, setSaveStatus] = useState<string>("");
-  const trainNumber = 27;
+  const trainNumber = 32;
 
   useEffect(() => {
     const initializeModel = async () => {
@@ -21,36 +34,36 @@ export default function Home() {
         const nn = window.ml5.neuralNetwork({
           task: "regression",
           debug: true,
-          learningRate: 0.0001, // 可以尝试较低的学习率
+          learningRate: 0.0001, // 稍微提高学习率
           layers: [
             {
               type: "dense",
-              units: 256, // 第一隐藏层神经元数量
+              units: 256,
               activation: "relu",
             },
             {
               type: "dense",
-              units: 128, // 第二隐藏层神经元数量
+              units: 128,
               activation: "relu",
             },
             {
               type: "dense",
-              units: 64, // 第三隐藏层神经元数量
+              units: 64,
               activation: "relu",
             },
             {
               type: "dense",
-              units: 32, // 第四隐藏层神经元数量
+              units: 32,
               activation: "relu",
             },
             {
               type: "dense",
-              units: 16, // 第五隐藏层神经元数量
+              units: 16,
               activation: "relu",
             },
             {
               type: "dense",
-              units: 7, // 输出层神经元数量
+              units: 7,
               activation: "linear",
             },
           ],
@@ -144,11 +157,10 @@ export default function Home() {
         model.normalizeData();
 
         const trainingOptions = {
-          epochs: 110, // 增加 epochs 数量以确保充分训练
-          batchSize: 28, // 调整批量大小以加快训练速度
-          // shuffle: true, // 在每个 epoch 之前打乱数据
-          validationSplit: 0.2, // 使用 20% 的数据进行验证
-          earlyStopping: true, // 早停技术
+          epochs: 140,
+          batchSize: 32,
+          shuffle: true,
+          validationSplit: 0.2,
         };
 
         const finishedTraining = () => {
@@ -182,32 +194,35 @@ export default function Home() {
       });
 
       model.predict(inputData, (results: any, err: any) => {
-        console.log("Prediction results:", inputData, results, err);
         if (err) {
           console.error(err, "something went wrong");
         } else {
-          console.log("Raw prediction results:", results);
           if (Array.isArray(results) && results.length === 7) {
-            const adjustedPrediction = results.map((r: any, index: number) => {
+            const adjustedPrediction = results.map((r, index) => {
+              let value;
               if (index < 6) {
-                return Math.max(1, Math.min(33, denormalize(r.value, 33)));
+                // 红球
+                value = Math.max(1, Math.min(33, denormalize(r.value, 33)));
+                console.log("Red ball value:", value);
+                const prophetPred = prophetPredictions.red[index];
+                // 确保预测值在 Prophet 模型的置信区间内
+                value = Math.max(
+                  Math.min(value, prophetPred.yhat_upper),
+                  prophetPred.yhat_lower
+                );
               } else {
-                return Math.max(1, Math.min(16, denormalize(r.value, 16)));
+                // 蓝球
+                value = Math.max(1, Math.min(16, denormalize(r.value, 16)));
+                console.log("Blue ball value:", value);
+                // 确保预测值在 Prophet 模型的置信区间内
+                value = Math.max(
+                  Math.min(value, prophetPredictions.blue.yhat_upper),
+                  prophetPredictions.blue.yhat_lower
+                );
               }
+              return Math.round(value);
             });
-
-            // 确保红球升序且不重复
-            // const redBalls = Array.from(
-            //   new Set(adjustedPrediction.slice(0, 6))
-            // ).sort((a, b) => a - b);
-            // while (redBalls.length < 6) {
-            //   let newNum = Math.floor(Math.random() * 33) + 1;
-            //   if (!redBalls.includes(newNum)) {
-            //     redBalls.push(newNum);
-            //   }
-            // }
             const redBalls = adjustedPrediction.slice(0, 6);
-
             setPrediction([...redBalls, adjustedPrediction[6]]);
             console.log(
               "Adjusted prediction:",

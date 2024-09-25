@@ -1,4 +1,6 @@
 export const thisData = [
+  { issue: "24111", reds: [1, 4, 11, 12, 22, 30], blue: 16 },
+  { issue: "24110", reds: [4, 13, 17, 23, 25, 33], blue: 14 },
   { issue: "24109", reds: [3, 4, 24, 28, 29, 33], blue: 9 },
   { issue: "24108", reds: [1, 8, 9, 23, 24, 30], blue: 8 },
   { issue: "24107", reds: [1, 6, 8, 13, 17, 19], blue: 9 },
