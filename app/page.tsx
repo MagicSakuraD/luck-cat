@@ -7,14 +7,14 @@ import ModeToggle from "@/components/mode-toggle";
 
 // 添加 Prophet 预测结果
 const prophetPredictions = {
-  blue: { yhat: 7.817406, yhat_lower: 1.813098, yhat_upper: 16.058283 },
+  blue: { yhat: 7.817406, yhat_lower: 1.813098, yhat_upper: 16.0 },
   red: [
-    { yhat: 4.369632, yhat_lower: 0.021479, yhat_upper: 9.143139 },
+    { yhat: 4.369632, yhat_lower: 1.0, yhat_upper: 9.143139 },
     { yhat: 8.563668, yhat_lower: 2.007665, yhat_upper: 14.364846 },
     { yhat: 14.306099, yhat_lower: 7.23877, yhat_upper: 20.787135 },
     { yhat: 19.705636, yhat_lower: 13.069152, yhat_upper: 26.610567 },
     { yhat: 23.826644, yhat_lower: 17.426201, yhat_upper: 30.416162 },
-    { yhat: 29.145027, yhat_lower: 24.383593, yhat_upper: 33.148594 },
+    { yhat: 29.145027, yhat_lower: 24.383593, yhat_upper: 33.0 },
   ],
 };
 
@@ -23,7 +23,7 @@ export default function Home() {
   const [prediction, setPrediction] = useState<number[] | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveStatus, setSaveStatus] = useState<string>("");
-  const trainNumber = 32;
+  const trainNumber = 10;
 
   useEffect(() => {
     const initializeModel = async () => {
@@ -34,7 +34,7 @@ export default function Home() {
         const nn = window.ml5.neuralNetwork({
           task: "regression",
           debug: true,
-          learningRate: 0.0001, // 稍微提高学习率
+          learningRate: 0.001, // 稍微提高学习率
           layers: [
             {
               type: "dense",
@@ -99,9 +99,32 @@ export default function Home() {
   const adjustWithWeights = (data: any[], weights: number[]) => {
     return data.map(
       (value: number, index: string | number) =>
-        value * weights[index as number]
-      // value * 1
+        // value * weights[index as number]
+        value * 1
     );
+  };
+
+  // 新增：Z-score 标准化函数
+  const zScoreNormalize = (data: number[]) => {
+    const mean = data.reduce((sum, val) => sum + val, 0) / data.length;
+    const std = Math.sqrt(
+      data.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / data.length
+    );
+    return data.map((val) => (val - mean) / (std || 1)); // 避免除以零
+  };
+
+  // 新增：Z-score 反标准化函数
+  const zScoreDenormalize = (
+    normalizedValue: number,
+    originalData: number[]
+  ) => {
+    const mean =
+      originalData.reduce((sum, val) => sum + val, 0) / originalData.length;
+    const std = Math.sqrt(
+      originalData.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) /
+        originalData.length
+    );
+    return normalizedValue * std + mean;
   };
 
   useEffect(() => {
@@ -113,9 +136,9 @@ export default function Home() {
           return [...redBalls, blueBall];
         };
 
-        const normalize = (value: number, max: number) => value / max;
-        const denormalize = (value: number, max: number) =>
-          Math.round(value * max);
+        // 获取所有红球和蓝球数据用于标准化
+        const allRedBalls = historyData.flatMap((entry) => entry.reds);
+        const allBlueBalls = historyData.map((entry) => entry.blue);
 
         // 计算权重
         const { redBallWeights, blueBallWeights } =
@@ -130,42 +153,50 @@ export default function Home() {
               historyData[j].blue,
             ]);
 
-            let adjustedData = adjustWithWeights(
-              processedData.slice(0, 6).map((x) => normalize(x, 33)),
-              redBallWeights
-            );
-            let adjustedBlueBall =
-              normalize(processedData[6], 16) *
-              blueBallWeights[processedData[6] - 1];
+            // 使用 Z-score 标准化
+            let adjustedData = zScoreNormalize(processedData.slice(0, 6));
+            let adjustedBlueBall = zScoreNormalize([processedData[6]])[0];
 
-            inputs.push(...adjustedData, adjustedBlueBall);
+            // 添加 Prophet 预测结果作为特征
+            const prophetRedFeatures = zScoreNormalize(
+              prophetPredictions.red.map((pred) => pred.yhat)
+            );
+            const prophetBlueFeature = zScoreNormalize([
+              prophetPredictions.blue.yhat,
+            ])[0];
+
+            inputs.push(
+              ...adjustedData,
+              adjustedBlueBall,
+              ...prophetRedFeatures,
+              prophetBlueFeature
+            );
           }
           let outputs = preprocessData([
             ...historyData[i - trainNumber].reds,
             historyData[i - trainNumber].blue,
           ]);
-          let adjustedOutputs = adjustWithWeights(
-            outputs.slice(0, 6).map((x) => normalize(x, 33)),
-            redBallWeights
-          );
-          let adjustedBlueOutput =
-            normalize(outputs[6], 16) * blueBallWeights[outputs[6] - 1];
+
+          // 对输出也使用 Z-score 标准化
+          let adjustedOutputs = zScoreNormalize(outputs.slice(0, 6));
+          let adjustedBlueOutput = zScoreNormalize([outputs[6]])[0];
 
           model.addData(inputs, [...adjustedOutputs, adjustedBlueOutput]);
         }
 
-        model.normalizeData();
+        // 移除这行，因为我们已经手动标准化了数据
+        // model.normalizeData();
 
         const trainingOptions = {
-          epochs: 140,
-          batchSize: 32,
+          epochs: 20,
+          batchSize: 10,
           shuffle: true,
           validationSplit: 0.2,
         };
 
         const finishedTraining = () => {
           console.log("Model trained!");
-          makePrediction(preprocessData, normalize, denormalize);
+          makePrediction(preprocessData, allRedBalls, allBlueBalls);
         };
 
         await model.train(trainingOptions, finishedTraining);
@@ -173,24 +204,28 @@ export default function Home() {
     };
 
     const makePrediction = (
-      preprocessData: { (data: number[]): number[]; (arg0: number[]): any },
-      normalize: {
-        (value: number, max: number): number;
-        (arg0: number, arg1: number): any;
-      },
-      denormalize: {
-        (value: number, max: number): number;
-        (arg0: any, arg1: number): number;
-      }
+      preprocessData: (data: number[]) => number[],
+      allRedBalls: number[],
+      allBlueBalls: number[]
     ) => {
       // 进行预测
       const lastEntries = historyData.slice(0, trainNumber);
       const inputData = lastEntries.flatMap((entry) => {
         const processedData = preprocessData([...entry.reds, entry.blue]);
-        return [
-          ...processedData.slice(0, 6).map((x) => normalize(x, 33)),
-          normalize(processedData[6], 16),
+        const normalizedData = [
+          ...zScoreNormalize(processedData.slice(0, 6)),
+          ...zScoreNormalize([processedData[6]]),
         ];
+
+        // 添加 Prophet 预测结果作为特征
+        const prophetRedFeatures = zScoreNormalize(
+          prophetPredictions.red.map((pred) => pred.yhat)
+        );
+        const prophetBlueFeature = zScoreNormalize([
+          prophetPredictions.blue.yhat,
+        ])[0];
+
+        return [...normalizedData, ...prophetRedFeatures, prophetBlueFeature];
       });
 
       model.predict(inputData, (results: any, err: any) => {
@@ -202,7 +237,7 @@ export default function Home() {
               let value;
               if (index < 6) {
                 // 红球
-                value = Math.max(1, Math.min(33, denormalize(r.value, 33)));
+                value = Math.round(zScoreDenormalize(r.value, allRedBalls));
                 console.log("Red ball value:", value);
                 const prophetPred = prophetPredictions.red[index];
                 // 确保预测值在 Prophet 模型的置信区间内
@@ -212,7 +247,7 @@ export default function Home() {
                 );
               } else {
                 // 蓝球
-                value = Math.max(1, Math.min(16, denormalize(r.value, 16)));
+                value = Math.round(zScoreDenormalize(r.value, allBlueBalls));
                 console.log("Blue ball value:", value);
                 // 确保预测值在 Prophet 模型的置信区间内
                 value = Math.max(
@@ -220,7 +255,10 @@ export default function Home() {
                   prophetPredictions.blue.yhat_lower
                 );
               }
-              return Math.round(value);
+              return Math.max(
+                1,
+                Math.min(index < 6 ? 33 : 16, Math.round(value))
+              );
             });
             const redBalls = adjustedPrediction.slice(0, 6);
             setPrediction([...redBalls, adjustedPrediction[6]]);
