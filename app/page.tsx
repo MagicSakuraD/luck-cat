@@ -7,23 +7,28 @@ import ModeToggle from "@/components/mode-toggle";
 
 // 添加 Prophet 预测结果
 const prophetPredictions = {
-  blue: { yhat: 7.817406, yhat_lower: 1.813098, yhat_upper: 16.0 },
+  blue: { yhat: 8, yhat_lower: 2, yhat_upper: 14 },
   red: [
-    { yhat: 4.369632, yhat_lower: 1.0, yhat_upper: 9.143139 },
-    { yhat: 8.563668, yhat_lower: 2.007665, yhat_upper: 14.364846 },
-    { yhat: 14.306099, yhat_lower: 7.23877, yhat_upper: 20.787135 },
-    { yhat: 19.705636, yhat_lower: 13.069152, yhat_upper: 26.610567 },
-    { yhat: 23.826644, yhat_lower: 17.426201, yhat_upper: 30.416162 },
-    { yhat: 29.145027, yhat_lower: 24.383593, yhat_upper: 33.0 },
+    { yhat: 4, yhat_lower: 1, yhat_upper: 9 },
+    { yhat: 9, yhat_lower: 2, yhat_upper: 15 },
+    { yhat: 14, yhat_lower: 8, yhat_upper: 21 },
+    { yhat: 20, yhat_lower: 13, yhat_upper: 26 },
+    { yhat: 24, yhat_lower: 18, yhat_upper: 30 },
+    { yhat: 29, yhat_lower: 24, yhat_upper: 33 },
   ],
 };
+
+const historicalWeight = 0.7; // 历史数据权重
+const prophetWeight = 0.3; // Prophet 预测结果权重
+const blueBallWeightFactor = 33 / 16; // 蓝球与红球比例的缩放因子
 
 export default function Home() {
   const [model, setModel] = useState<any>(null);
   const [prediction, setPrediction] = useState<number[] | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveStatus, setSaveStatus] = useState<string>("");
-  const trainNumber = 10;
+
+  const trainNumber = 32; // 用于训练的历史数据数量
 
   useEffect(() => {
     const initializeModel = async () => {
@@ -34,13 +39,8 @@ export default function Home() {
         const nn = window.ml5.neuralNetwork({
           task: "regression",
           debug: true,
-          learningRate: 0.001, // 稍微提高学习率
+          learningRate: 0.001,
           layers: [
-            {
-              type: "dense",
-              units: 256,
-              activation: "relu",
-            },
             {
               type: "dense",
               units: 128,
@@ -63,7 +63,7 @@ export default function Home() {
             },
             {
               type: "dense",
-              units: 7,
+              units: 7, // 输出 7 个数值 (6 个红球 + 1 个蓝球)
               activation: "linear",
             },
           ],
@@ -76,35 +76,7 @@ export default function Home() {
     initializeModel();
   }, []);
 
-  const calculateWeights = (
-    historyData: { reds: number[]; blue: number }[]
-  ) => {
-    const redBallCounts = Array(33).fill(0);
-    const blueBallCounts = Array(16).fill(0);
-
-    for (let i = 0; i < trainNumber; i++) {
-      historyData[i].reds.forEach((num: number) => {
-        redBallCounts[num - 1] += 1;
-      });
-      blueBallCounts[historyData[i].blue - 1] += 1;
-    }
-
-    // 权重
-    const redBallWeights = redBallCounts.map((count) => count / trainNumber);
-    const blueBallWeights = blueBallCounts.map((count) => count / trainNumber);
-    return { redBallWeights, blueBallWeights };
-  };
-
-  // 调整输入数据以反映权重
-  const adjustWithWeights = (data: any[], weights: number[]) => {
-    return data.map(
-      (value: number, index: string | number) =>
-        // value * weights[index as number]
-        value * 1
-    );
-  };
-
-  // 新增：Z-score 标准化函数
+  // Z-score 标准化函数
   const zScoreNormalize = (data: number[]) => {
     const mean = data.reduce((sum, val) => sum + val, 0) / data.length;
     const std = Math.sqrt(
@@ -113,7 +85,7 @@ export default function Home() {
     return data.map((val) => (val - mean) / (std || 1)); // 避免除以零
   };
 
-  // 新增：Z-score 反标准化函数
+  // Z-score 反标准化函数
   const zScoreDenormalize = (
     normalizedValue: number,
     originalData: number[]
@@ -140,10 +112,6 @@ export default function Home() {
         const allRedBalls = historyData.flatMap((entry) => entry.reds);
         const allBlueBalls = historyData.map((entry) => entry.blue);
 
-        // 计算权重
-        const { redBallWeights, blueBallWeights } =
-          calculateWeights(historyData);
-
         // 添加数据
         for (let i = historyData.length - 1; i >= trainNumber; i--) {
           let inputs = [];
@@ -165,13 +133,15 @@ export default function Home() {
               prophetPredictions.blue.yhat,
             ])[0];
 
+            // 使用加权平均组合历史数据和 Prophet 预测结果
             inputs.push(
-              ...adjustedData,
-              adjustedBlueBall,
-              ...prophetRedFeatures,
-              prophetBlueFeature
+              ...adjustedData.map((val) => val * historicalWeight), // 对历史红球数据施加权重
+              adjustedBlueBall * historicalWeight * blueBallWeightFactor, // 对蓝球数据施加权重并缩放
+              ...prophetRedFeatures.map((val) => val * prophetWeight), // 对 Prophet 红球施加权重
+              prophetBlueFeature * prophetWeight * blueBallWeightFactor // 对 Prophet 蓝球施加权重并缩放
             );
           }
+
           let outputs = preprocessData([
             ...historyData[i - trainNumber].reds,
             historyData[i - trainNumber].blue,
@@ -181,15 +151,13 @@ export default function Home() {
           let adjustedOutputs = zScoreNormalize(outputs.slice(0, 6));
           let adjustedBlueOutput = zScoreNormalize([outputs[6]])[0];
 
+          // 添加调整后的输出数据
           model.addData(inputs, [...adjustedOutputs, adjustedBlueOutput]);
         }
 
-        // 移除这行，因为我们已经手动标准化了数据
-        // model.normalizeData();
-
         const trainingOptions = {
-          epochs: 20,
-          batchSize: 10,
+          epochs: 100,
+          batchSize: 32,
           shuffle: true,
           validationSplit: 0.2,
         };
@@ -212,10 +180,10 @@ export default function Home() {
       const lastEntries = historyData.slice(0, trainNumber);
       const inputData = lastEntries.flatMap((entry) => {
         const processedData = preprocessData([...entry.reds, entry.blue]);
-        const normalizedData = [
-          ...zScoreNormalize(processedData.slice(0, 6)),
-          ...zScoreNormalize([processedData[6]]),
-        ];
+
+        // 分别处理红球和蓝球
+        const normalizedRedBalls = zScoreNormalize(processedData.slice(0, 6)); // 处理红球数据
+        const normalizedBlueBall = zScoreNormalize([processedData[6]])[0]; // 处理蓝球数据
 
         // 添加 Prophet 预测结果作为特征
         const prophetRedFeatures = zScoreNormalize(
@@ -225,7 +193,26 @@ export default function Home() {
           prophetPredictions.blue.yhat,
         ])[0];
 
-        return [...normalizedData, ...prophetRedFeatures, prophetBlueFeature];
+        // 使用加权平均组合历史数据和 Prophet 预测结果
+        const weightedRedBalls = normalizedRedBalls.map(
+          (val) => val * historicalWeight
+        ); // 对历史红球施加权重
+        const weightedBlueBall =
+          normalizedBlueBall * historicalWeight * blueBallWeightFactor; // 对历史蓝球施加权重并缩放
+
+        const weightedProphetRedBalls = prophetRedFeatures.map(
+          (val) => val * prophetWeight
+        ); // 对 Prophet 红球施加权重
+        const weightedProphetBlueBall =
+          prophetBlueFeature * prophetWeight * blueBallWeightFactor; // 对 Prophet 蓝球施加权重并缩放
+
+        // 将红球和蓝球的数据分别合并
+        return [
+          ...weightedRedBalls, // 历史红球
+          weightedBlueBall, // 历史蓝球
+          ...weightedProphetRedBalls, // Prophet 红球预测
+          weightedProphetBlueBall, // Prophet 蓝球预测
+        ];
       });
 
       model.predict(inputData, (results: any, err: any) => {
