@@ -5,16 +5,18 @@ import { historyData } from "./data/historyData";
 import ModeToggle from "@/components/mode-toggle";
 
 const prophetPredictions = {
-  blue: { yhat: 14, yhat_lower: 2, yhat_upper: 14 },
+  blue: { yhat: 8, yhat_lower: 3, yhat_upper: 13 },
   red: [
-    { yhat: 4, yhat_lower: 1, yhat_upper: 9 },
-    { yhat: 13, yhat_lower: 2, yhat_upper: 15 },
-    { yhat: 17, yhat_lower: 8, yhat_upper: 21 },
-    { yhat: 23, yhat_lower: 13, yhat_upper: 26 },
-    { yhat: 25, yhat_lower: 18, yhat_upper: 30 },
-    { yhat: 33, yhat_lower: 24, yhat_upper: 33 },
+    { yhat: 4, yhat_lower: 1, yhat_upper: 8 },
+    { yhat: 11, yhat_lower: 5, yhat_upper: 14 },
+    { yhat: 16, yhat_lower: 10, yhat_upper: 21 },
+    { yhat: 21, yhat_lower: 15, yhat_upper: 26 },
+    { yhat: 24, yhat_lower: 18, yhat_upper: 30 },
+    { yhat: 29, yhat_lower: 25, yhat_upper: 33 },
   ],
 };
+// [3, 10, 16, 21, 27, 32, 5]
+// { issue: "24112", reds: [8, 11, 16, 25, 29, 32], blue: 3 },
 
 // Adjust weights – give more importance to historical data initially
 const historicalWeight = 0.7;
