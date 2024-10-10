@@ -2,16 +2,15 @@
 import { useEffect, useState } from "react";
 import * as tf from "@tensorflow/tfjs";
 import { historyData } from "./data/historyData";
-import ModeToggle from "@/components/mode-toggle";
 
 const prophetPredictions = {
   blue: { yhat: 8, yhat_lower: 3, yhat_upper: 13 },
   red: [
-    { yhat: 4, yhat_lower: 1, yhat_upper: 8 },
-    { yhat: 11, yhat_lower: 5, yhat_upper: 14 },
-    { yhat: 16, yhat_lower: 10, yhat_upper: 21 },
-    { yhat: 21, yhat_lower: 15, yhat_upper: 26 },
-    { yhat: 24, yhat_lower: 18, yhat_upper: 30 },
+    { yhat: 4, yhat_lower: 2, yhat_upper: 9 },
+    { yhat: 10, yhat_lower: 6, yhat_upper: 15 },
+    { yhat: 14, yhat_lower: 8, yhat_upper: 20 },
+    { yhat: 19, yhat_lower: 13, yhat_upper: 25 },
+    { yhat: 24, yhat_lower: 20, yhat_upper: 30 },
     { yhat: 29, yhat_lower: 25, yhat_upper: 33 },
   ],
 };
@@ -29,7 +28,7 @@ export default function Home() {
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveStatus, setSaveStatus] = useState<string>("");
 
-  const trainNumber = 32; // 用于训练的历史数据数量
+  const trainNumber = 7; // 用于训练的历史数据数量
 
   useEffect(() => {
     const initializeModel = async () => {
@@ -45,15 +44,13 @@ export default function Home() {
             {
               type: "dense",
               units: 128,
-              activation: "relu",
+              activation: "relu", // 改为ReLU
             },
-
             {
               type: "dense",
               units: 64,
               activation: "relu",
             },
-
             {
               type: "dense",
               units: 32,
@@ -67,7 +64,7 @@ export default function Home() {
             {
               type: "dense",
               units: 7, // 输出 7 个数值 (6 个红球 + 1 个蓝球)
-              activation: "linear",
+              activation: "linear", // 输出层保持线性激活
             },
           ],
         });
@@ -175,7 +172,7 @@ export default function Home() {
 
         const trainingOptions = {
           epochs: 100,
-          batchSize: 32,
+          batchSize: 7,
           validationSplit: 0.2,
         };
 
