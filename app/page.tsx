@@ -1,21 +1,19 @@
 "use client";
 import { useEffect, useState } from "react";
 import * as tf from "@tensorflow/tfjs";
-import { historyData } from "./data/historyData";
+import { historyData } from "./data/thisData";
 
 const prophetPredictions = {
-  blue: { yhat: 8, yhat_lower: 3, yhat_upper: 13 },
+  blue: { yhat: 8, yhat_lower: 1, yhat_upper: 13 },
   red: [
-    { yhat: 4, yhat_lower: 2, yhat_upper: 9 },
-    { yhat: 10, yhat_lower: 6, yhat_upper: 15 },
-    { yhat: 14, yhat_lower: 8, yhat_upper: 20 },
-    { yhat: 19, yhat_lower: 13, yhat_upper: 25 },
-    { yhat: 24, yhat_lower: 20, yhat_upper: 30 },
-    { yhat: 29, yhat_lower: 25, yhat_upper: 33 },
+    { yhat: 4, yhat_lower: 1, yhat_upper: 8 },
+    { yhat: 9, yhat_lower: 4, yhat_upper: 14 },
+    { yhat: 14, yhat_lower: 9, yhat_upper: 22 },
+    { yhat: 19, yhat_lower: 13, yhat_upper: 26 },
+    { yhat: 24, yhat_lower: 18, yhat_upper: 31 },
+    { yhat: 29, yhat_lower: 24, yhat_upper: 33 },
   ],
 };
-// [3, 10, 16, 21, 27, 32, 5]
-// { issue: "24112", reds: [8, 11, 16, 25, 29, 32], blue: 3 },
 
 // Adjust weights – give more importance to historical data initially
 const historicalWeight = 0.7;
@@ -28,7 +26,7 @@ export default function Home() {
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveStatus, setSaveStatus] = useState<string>("");
 
-  const trainNumber = 7; // 用于训练的历史数据数量
+  const trainNumber = 16; // 用于训练的历史数据数量
 
   useEffect(() => {
     const initializeModel = async () => {
@@ -75,29 +73,6 @@ export default function Home() {
 
     initializeModel();
   }, []);
-
-  // Z-score 标准化函数
-  const zScoreNormalize = (data: number[]) => {
-    const mean = data.reduce((sum, val) => sum + val, 0) / data.length;
-    const std = Math.sqrt(
-      data.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / data.length
-    );
-    return data.map((val) => (val - mean) / (std || 1)); // 避免除以零
-  };
-
-  // Z-score 反标准化函数
-  const zScoreDenormalize = (
-    normalizedValue: number,
-    originalData: number[]
-  ) => {
-    const mean =
-      originalData.reduce((sum, val) => sum + val, 0) / originalData.length;
-    const std = Math.sqrt(
-      originalData.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) /
-        originalData.length
-    );
-    return normalizedValue * std + mean;
-  };
 
   useEffect(() => {
     const trainAndPredict = async () => {
@@ -148,7 +123,7 @@ export default function Home() {
                 ? pred.yhat
                 : pred.yhat - prophetPredictions.red[index - 1].yhat
             );
-            const prophetRedFeatures = zScoreNormalize(prophetRedDiffs); // Normalize differences
+            const prophetRedFeatures = prophetRedDiffs.map(normalizeRed); // Normalize differences
             const prophetBlueFeature = normalizeBlue(
               prophetPredictions.blue.yhat
             ); // Normalize
@@ -171,8 +146,8 @@ export default function Home() {
         }
 
         const trainingOptions = {
-          epochs: 100,
-          batchSize: 7,
+          epochs: 320,
+          batchSize: 16,
           validationSplit: 0.2,
         };
 
@@ -213,7 +188,7 @@ export default function Home() {
             ? pred.yhat
             : pred.yhat - prophetPredictions.red[index - 1].yhat
         );
-        const prophetRedFeatures = zScoreNormalize(prophetRedDiffs);
+        const prophetRedFeatures = prophetRedDiffs.map(normalizeRed);
         const prophetBlueFeature = normalizeBlue(prophetPredictions.blue.yhat);
 
         // 使用加权平均组合历史数据和 Prophet 预测结果

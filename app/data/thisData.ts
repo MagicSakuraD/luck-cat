@@ -1,4 +1,6 @@
-export const thisData = [
+export const historyData = [
+  { issue: "24117", reds: [3, 12, 14, 16, 29, 32], blue: 12 },
+  { issue: "24116", reds: [1, 15, 20, 22, 31, 32], blue: 3 },
   { issue: "24115", reds: [3, 10, 11, 19, 27, 28], blue: 7 },
   { issue: "24114", reds: [7, 11, 18, 24, 27, 32], blue: 4 },
   { issue: "24113", reds: [4, 5, 23, 24, 26, 31], blue: 11 },
@@ -91,4 +93,16 @@ export const thisData = [
   { issue: "24026", reds: [4, 7, 18, 19, 20, 25], blue: 6 },
   { issue: "24025", reds: [8, 15, 21, 22, 25, 33], blue: 13 },
   { issue: "24024", reds: [3, 7, 21, 24, 26, 30], blue: 10 },
+  { issue: "24023", reds: [1, 10, 22, 25, 28, 32], blue: 10 },
+  { issue: "24022", reds: [2, 9, 11, 14, 18, 26], blue: 6 },
+  { issue: "24021", reds: [4, 6, 16, 17, 23, 24], blue: 11 },
+  { issue: "24020", reds: [3, 8, 12, 14, 17, 33], blue: 8 },
+  { issue: "24019", reds: [5, 11, 12, 16, 17, 20], blue: 8 },
+  { issue: "24018", reds: [6, 15, 17, 24, 28, 29], blue: 16 },
+  { issue: "24017", reds: [4, 17, 19, 20, 25, 32], blue: 4 },
+  { issue: "24016", reds: [7, 12, 20, 24, 32, 33], blue: 4 },
+  { issue: "24015", reds: [3, 8, 17, 18, 20, 30], blue: 15 },
+  { issue: "24014", reds: [1, 2, 10, 22, 24, 25], blue: 13 },
+  { issue: "24013", reds: [1, 7, 10, 14, 21, 25], blue: 7 },
+  { issue: "24012", reds: [1, 3, 7, 18, 22, 28], blue: 15 },
 ];
