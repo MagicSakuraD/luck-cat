@@ -6,7 +6,7 @@ const tsFilePath = path.join(__dirname, "thisData.ts");
 const tsContent = fs.readFileSync(tsFilePath, "utf-8");
 
 // 使用正则表达式提取 historyData
-const match = tsContent.match(/export const thisData = (\[.*?\]);/s);
+const match = tsContent.match(/export const historyData = (\[.*?\]);/s);
 if (!match) {
   throw new Error("historyData not found in the TypeScript file.");
 }

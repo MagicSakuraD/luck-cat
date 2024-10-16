@@ -2,22 +2,23 @@
 import { useEffect, useState } from "react";
 import * as tf from "@tensorflow/tfjs";
 import { historyData } from "./data/thisData";
+import { Component } from "./show";
 
 const prophetPredictions = {
-  blue: { yhat: 8, yhat_lower: 1, yhat_upper: 13 },
+  blue: { yhat: 8, yhat_lower: 2, yhat_upper: 14 },
   red: [
-    { yhat: 4, yhat_lower: 1, yhat_upper: 8 },
-    { yhat: 9, yhat_lower: 4, yhat_upper: 14 },
-    { yhat: 14, yhat_lower: 9, yhat_upper: 22 },
-    { yhat: 19, yhat_lower: 13, yhat_upper: 26 },
-    { yhat: 24, yhat_lower: 18, yhat_upper: 31 },
+    { yhat: 5, yhat_lower: 1, yhat_upper: 8 },
+    { yhat: 9, yhat_lower: 4, yhat_upper: 15 },
+    { yhat: 14, yhat_lower: 7, yhat_upper: 21 },
+    { yhat: 21, yhat_lower: 14, yhat_upper: 27 },
+    { yhat: 25, yhat_lower: 19, yhat_upper: 31 },
     { yhat: 29, yhat_lower: 24, yhat_upper: 33 },
   ],
 };
 
 // Adjust weights – give more importance to historical data initially
-const historicalWeight = 0.7;
-const prophetWeight = 0.3;
+const historicalWeight = 0.3;
+const prophetWeight = 0.7;
 const blueBallWeightFactor = 33 / 16;
 
 export default function Home() {
@@ -146,7 +147,7 @@ export default function Home() {
         }
 
         const trainingOptions = {
-          epochs: 320,
+          epochs: 350,
           batchSize: 16,
           validationSplit: 0.2,
         };
