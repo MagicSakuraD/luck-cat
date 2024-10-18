@@ -5,20 +5,20 @@ import { historyData } from "./data/thisData";
 import { Component } from "./show";
 
 const prophetPredictions = {
-  blue: { yhat: 8, yhat_lower: 2, yhat_upper: 14 },
+  blue: { yhat: 11, yhat_lower: 2, yhat_upper: 14 },
   red: [
-    { yhat: 5, yhat_lower: 1, yhat_upper: 8 },
-    { yhat: 9, yhat_lower: 4, yhat_upper: 15 },
-    { yhat: 14, yhat_lower: 7, yhat_upper: 21 },
+    { yhat: 7, yhat_lower: 1, yhat_upper: 8 },
+    { yhat: 13, yhat_lower: 4, yhat_upper: 15 },
+    { yhat: 15, yhat_lower: 7, yhat_upper: 26 },
     { yhat: 21, yhat_lower: 14, yhat_upper: 27 },
-    { yhat: 25, yhat_lower: 19, yhat_upper: 31 },
-    { yhat: 29, yhat_lower: 24, yhat_upper: 33 },
+    { yhat: 31, yhat_lower: 19, yhat_upper: 31 },
+    { yhat: 33, yhat_lower: 24, yhat_upper: 33 },
   ],
 };
 
 // Adjust weights – give more importance to historical data initially
-const historicalWeight = 0.3;
-const prophetWeight = 0.7;
+const historicalWeight = 0.2;
+const prophetWeight = 0.8;
 const blueBallWeightFactor = 33 / 16;
 
 export default function Home() {
@@ -147,7 +147,7 @@ export default function Home() {
         }
 
         const trainingOptions = {
-          epochs: 350,
+          epochs: 150,
           batchSize: 16,
           validationSplit: 0.2,
         };
@@ -252,14 +252,13 @@ export default function Home() {
   }, [model]);
 
   return (
-    <div>
-      <h1>Predictor</h1>
-      {/* <ModeToggle /> */}
+    <div className="flex justify-center items-center h-screen">
       {prediction && (
-        <div>
-          <h2>Predicted Numbers:</h2>
+        <div className="h-3/5">
+          {/* <h2>Predicted Numbers:</h2>
           <p>Red: {prediction.slice(0, 6).join(", ")}</p>
-          <p>Blue: {prediction[6]}</p>
+          <p>Blue: {prediction[6]}</p> */}
+          <Component visitors={prediction ? prediction.slice(0, 7) : []} />
         </div>
       )}
     </div>

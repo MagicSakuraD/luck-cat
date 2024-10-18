@@ -21,14 +21,6 @@ import {
 
 export const description = "A donut chart with text";
 
-const chartData = [
-  { browser: "chrome", visitors: 275, fill: "var(--color-chrome)" },
-  { browser: "safari", visitors: 200, fill: "var(--color-safari)" },
-  { browser: "firefox", visitors: 287, fill: "var(--color-firefox)" },
-  { browser: "edge", visitors: 173, fill: "var(--color-edge)" },
-  { browser: "other", visitors: 190, fill: "var(--color-other)" },
-];
-
 const chartConfig = {
   visitors: {
     label: "Visitors",
@@ -53,18 +45,40 @@ const chartConfig = {
     label: "Other",
     color: "hsl(var(--chart-5))",
   },
+  red: {
+    label: "Red",
+    color: "hsl(var(--chart-6))",
+  },
+  blue: {
+    label: "Blue",
+    color: "hsl(var(--chart-7))",
+  },
 } satisfies ChartConfig;
 
-export function Component() {
+interface ComponentProps {
+  visitors: number[];
+}
+
+export function Component({ visitors }: ComponentProps) {
   const totalVisitors = React.useMemo(() => {
-    return chartData.reduce((acc, curr) => acc + curr.visitors, 0);
-  }, []);
+    return visitors.reduce((acc, curr) => acc + curr, 0);
+  }, [visitors]);
+
+  const chartData = [
+    { browser: "Red1", visitors: visitors[0], fill: "var(--color-chrome)" },
+    { browser: "Red2", visitors: visitors[1], fill: "var(--color-safari)" },
+    { browser: "Red3", visitors: visitors[2], fill: "var(--color-firefox)" },
+    { browser: "Red4", visitors: visitors[3], fill: "var(--color-edge)" },
+    { browser: "Red5", visitors: visitors[4], fill: "var(--color-other)" },
+    { browser: "Red6", visitors: visitors[5], fill: "var(--color-red)" },
+    { browser: "Blue7", visitors: visitors[6], fill: "var(--color-blue)" },
+  ];
 
   return (
     <Card className="flex flex-col">
       <CardHeader className="items-center pb-0">
         <CardTitle>Pie Chart - Donut with Text</CardTitle>
-        <CardDescription>January - June 2024</CardDescription>
+        <CardDescription>October - 18th 2024</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 pb-0">
         <ChartContainer
@@ -105,7 +119,7 @@ export function Component() {
                           y={(viewBox.cy || 0) + 24}
                           className="fill-muted-foreground"
                         >
-                          Visitors
+                          Total
                         </tspan>
                       </text>
                     );
@@ -118,10 +132,11 @@ export function Component() {
       </CardContent>
       <CardFooter className="flex-col gap-2 text-sm">
         <div className="flex items-center gap-2 font-medium leading-none">
-          Trending up by 5.2% this month <TrendingUp className="h-4 w-4" />
+          {visitors.join(" - ")}
+          <TrendingUp className="h-4 w-4" />
         </div>
         <div className="leading-none text-muted-foreground">
-          Showing total visitors for the last 6 months
+          Showing total number for the blue and red
         </div>
       </CardFooter>
     </Card>
