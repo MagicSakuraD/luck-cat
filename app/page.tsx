@@ -7,14 +7,14 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 const prophetPredictions = {
-  blue: { yhat: 11, yhat_lower: 2, yhat_upper: 14 },
+  blue: { yhat: 8, yhat_lower: 2, yhat_upper: 15 },
   red: [
-    { yhat: 7, yhat_lower: 1, yhat_upper: 8 },
-    { yhat: 13, yhat_lower: 4, yhat_upper: 15 },
-    { yhat: 15, yhat_lower: 7, yhat_upper: 26 },
-    { yhat: 21, yhat_lower: 14, yhat_upper: 27 },
-    { yhat: 31, yhat_lower: 19, yhat_upper: 31 },
-    { yhat: 33, yhat_lower: 24, yhat_upper: 33 },
+    { yhat: 4, yhat_lower: 1, yhat_upper: 8 },
+    { yhat: 9, yhat_lower: 4, yhat_upper: 15 },
+    { yhat: 15, yhat_lower: 9, yhat_upper: 22 },
+    { yhat: 20, yhat_lower: 13, yhat_upper: 27 },
+    { yhat: 25, yhat_lower: 18, yhat_upper: 31 },
+    { yhat: 29, yhat_lower: 24, yhat_upper: 34 },
   ],
 };
 
@@ -29,7 +29,7 @@ export default function Home() {
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveStatus, setSaveStatus] = useState<string>("");
 
-  const trainNumber = 23; // 用于训练的历史数据数量
+  const trainNumber = 16; // 用于训练的历史数据数量
 
   useEffect(() => {
     const initializeModel = async () => {
@@ -155,7 +155,7 @@ export default function Home() {
 
         const trainingOptions = {
           epochs: 370,
-          batchSize: 23,
+          batchSize: 16,
           validationSplit: 0.2,
         };
 
