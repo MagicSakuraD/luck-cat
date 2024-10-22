@@ -1,132 +1,195 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import * as tf from "@tensorflow/tfjs";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
-import { thisData } from "../data/thisData";
+const prophetPredictions = {
+  blue: { yhat: 11, yhat_lower: 2, yhat_upper: 14 },
+  red: [
+    { yhat: 7, yhat_lower: 1, yhat_upper: 8 },
+    { yhat: 13, yhat_lower: 4, yhat_upper: 15 },
+    { yhat: 15, yhat_lower: 7, yhat_upper: 26 },
+    { yhat: 21, yhat_lower: 14, yhat_upper: 27 },
+    { yhat: 31, yhat_lower: 19, yhat_upper: 31 },
+    { yhat: 33, yhat_lower: 24, yhat_upper: 33 },
+  ],
+};
 
-export default function PredictionPage() {
+const historicalWeight = 0.7;
+const prophetWeight = 0.3;
+const blueBallWeightFactor = 1.2;
+
+const normalize = (x: number, mean: number, std: number) =>
+  (x - mean) / (std || 1);
+
+const preprocessData = (
+  data: { reds: number[]; blue: number },
+  redMean: number,
+  redStd: number,
+  blueMean: number,
+  blueStd: number
+) => {
+  const redBalls = data.reds.sort((a, b) => a - b);
+  const blueBall = data.blue;
+
+  const normalizedRedBalls = redBalls.map((ball) =>
+    normalize(ball, redMean, redStd)
+  );
+  const normalizedBlueBall = normalize(blueBall, blueMean, blueStd);
+
+  const prophetRedDiffs = prophetPredictions.red.map((pred, index) =>
+    index === 0 ? pred.yhat : pred.yhat - prophetPredictions.red[index - 1].yhat
+  );
+  const prophetRedFeatures = prophetRedDiffs.map((diff) =>
+    normalize(diff, redMean, redStd)
+  );
+  const prophetBlueFeature = normalize(
+    prophetPredictions.blue.yhat,
+    blueMean,
+    blueStd
+  );
+
+  const weightedRedBalls = normalizedRedBalls.map(
+    (val) => val * historicalWeight
+  );
+  const weightedBlueBall =
+    normalizedBlueBall * historicalWeight * blueBallWeightFactor;
+
+  const weightedProphetRedBalls = prophetRedFeatures.map(
+    (val) => val * prophetWeight
+  );
+  const weightedProphetBlueBall =
+    prophetBlueFeature * prophetWeight * blueBallWeightFactor;
+
+  return [
+    ...weightedRedBalls,
+    weightedBlueBall,
+    ...weightedProphetRedBalls,
+    weightedProphetBlueBall,
+  ];
+};
+
+export default function Home() {
   const [model, setModel] = useState<any>(null);
   const [prediction, setPrediction] = useState<number[] | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [userInput, setUserInput] = useState<string>("");
 
   useEffect(() => {
-    const loadModelAndPredict = async () => {
+    const initializeModel = async () => {
       if (typeof window !== "undefined" && window.ml5) {
-        try {
-          // 确保 TensorFlow.js 已经初始化
-          await tf.ready();
+        await tf.ready();
 
-          // 创建一个新的神经网络实例
-          const nn = window.ml5.neuralNetwork({
-            task: "regression",
-            debug: true,
-            learningRate: 0.0001,
-            // hiddenUnits: 64,
-          });
+        const nn = window.ml5.neuralNetwork({
+          task: "regression",
+          debug: true,
+        });
 
-          // // 加载本地保存的模型
-          // const modelPath = "/model/indexeddb___lottery-model.json"; // 本地模型的相对路径
-          // 使用 JSON 对象指定模型文件路径
-          const modelInfo = {
-            model: "/model/model.json",
-            metadata: "/model/model_meta.json",
-            weights: "/model/model.weights.bin",
-          };
+        const modelInfo = {
+          model: "/model/model.json",
+          metadata: "/model/model_meta.json",
+          weights: "/model/model.weights.bin",
+        };
 
-          nn.load(modelInfo, () => {
-            console.log("Model loaded successfully");
-            setModel(nn);
-            makePrediction(nn);
-          });
-        } catch (err) {
-          console.error("Error initializing:", err);
-          setError("Error initializing model");
-          setIsLoading(false);
-        }
+        await nn.load(modelInfo);
+        setModel(nn);
       }
     };
 
-    loadModelAndPredict();
+    initializeModel();
   }, []);
 
-  const makePrediction = (loadedModel: any) => {
-    // 准备输入数据
-    const lastEntries = thisData.slice(0, 27);
-    const inputData = lastEntries.flatMap((entry) => {
-      const processedData = preprocessData([...entry.reds, entry.blue]);
-      return [
-        ...processedData.slice(0, 6).map((x) => normalize(x, 33)),
-        normalize(processedData[6], 16),
-      ];
-    });
+  const handleUserInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setUserInput(e.target.value);
+  };
 
-    // 进行预测
-    loadedModel.predict(inputData, (results: any, err: any) => {
-      if (err) {
-        console.error(err);
-        setError("Error making prediction");
-      } else {
-        console.log("Raw prediction results:", results);
+  const makePrediction = async () => {
+    if (!model) return;
 
-        if (Array.isArray(results) && results.length === 7) {
-          const adjustedPrediction = results.map((r: any, index: number) => {
-            if (index < 6) {
-              return Math.max(1, Math.min(33, denormalize(r.value, 33)));
-            } else {
-              return Math.max(1, Math.min(16, denormalize(r.value, 16)));
-            }
-          });
+    try {
+      const inputArray = JSON.parse(userInput);
 
-          // 确保红球升序且不重复
-          const redBalls = Array.from(
-            new Set(adjustedPrediction.slice(0, 6))
-          ).sort((a, b) => a - b);
-          while (redBalls.length < 6) {
-            let newNum = Math.floor(Math.random() * 33) + 1;
-            if (!redBalls.includes(newNum)) {
-              redBalls.push(newNum);
-            }
-          }
-
-          setPrediction([...redBalls, adjustedPrediction[6]]);
-        } else {
-          setError("Prediction did not return 7 numbers");
-        }
+      if (!Array.isArray(inputArray) || inputArray.length === 0) {
+        alert("请输入有效的数组对象");
+        return;
       }
-      setIsLoading(false);
-    });
+
+      const allRedBalls = inputArray.flatMap((entry) => entry.reds);
+      const allBlueBalls = inputArray.map((entry) => entry.blue);
+      const redMean =
+        allRedBalls.reduce((a, b) => a + b, 0) / allRedBalls.length;
+      const redStd = Math.sqrt(
+        allRedBalls.reduce((a, b) => a + Math.pow(b - redMean, 2), 0) /
+          allRedBalls.length
+      );
+      const blueMean =
+        allBlueBalls.reduce((a, b) => a + b, 0) / allBlueBalls.length;
+      const blueStd = Math.sqrt(
+        allBlueBalls.reduce((a, b) => a + Math.pow(b - blueMean, 2), 0) /
+          allBlueBalls.length
+      );
+
+      const processedInput = inputArray.map((entry) =>
+        preprocessData(entry, redMean, redStd, blueMean, blueStd)
+      );
+
+      const denormalize = (x: number, mean: number, std: number) =>
+        x * (std || 1) + mean;
+
+      model.predict(processedInput, (results: any, err: any) => {
+        if (err) {
+          console.error(err, "something went wrong");
+        } else {
+          if (Array.isArray(results) && results.length === 7) {
+            const adjustedPrediction = results.map((r, index) => {
+              let value;
+              if (index < 6) {
+                value = Math.round(denormalize(r.value, redMean, redStd));
+                const prophetPred = prophetPredictions.red[index];
+                value = Math.max(
+                  Math.min(value, prophetPred.yhat_upper),
+                  prophetPred.yhat_lower
+                );
+              } else {
+                value = Math.round(denormalize(r.value, blueMean, blueStd));
+                value = Math.max(
+                  Math.min(value, prophetPredictions.blue.yhat_upper),
+                  prophetPredictions.blue.yhat_lower
+                );
+              }
+              return Math.max(1, Math.min(index < 6 ? 33 : 16, value));
+            });
+            setPrediction(adjustedPrediction);
+          }
+        }
+      });
+    } catch (error) {
+      alert("输入格式错误，请输入有效的JSON数组对象");
+      console.error("Error parsing input:", error);
+    }
   };
-
-  // 辅助函数
-  const preprocessData = (data: number[]) => {
-    const redBalls = data.slice(0, 6).sort((a, b) => a - b);
-    const blueBall = data[6];
-    return [...redBalls, blueBall];
-  };
-
-  const normalize = (value: number, max: number) => value / max;
-
-  const denormalize = (value: number, max: number) => Math.round(value * max);
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div>
-        <h1 className="text-2xl font-bold mb-4">Prediction</h1>
-        {isLoading ? (
-          <p>Loading model and making prediction...</p>
-        ) : error ? (
-          <p className="text-red-500">{error}</p>
-        ) : prediction ? (
-          <div>
-            <p className="mb-2">Predicted numbers:</p>
-            <p>Red balls: {prediction.slice(0, 6).join(", ")}</p>
-            <p>Blue ball: {prediction[6]}</p>
+    <Card className="flex justify-center items-center h-screen flex-col">
+      <CardContent>
+        <textarea
+          value={userInput}
+          onChange={handleUserInput}
+          placeholder='请输入历史数据，以JSON数组对象格式 (例如: [{"issue": "24119", "reds": [2, 9, 26, 27, 31, 32], "blue": 14}, {...}])'
+          className="w-full p-2 mb-4 border rounded"
+        />
+        {prediction && (
+          <div className="h-3/5">
+            <p>预测结果: {prediction.join(", ")}</p>
           </div>
-        ) : (
-          <p>No prediction available</p>
         )}
-      </div>
-    </main>
+      </CardContent>
+
+      <CardFooter>
+        <Button onClick={makePrediction} disabled={!userInput}>
+          预测
+        </Button>
+      </CardFooter>
+    </Card>
   );
 }

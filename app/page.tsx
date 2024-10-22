@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import * as tf from "@tensorflow/tfjs";
 import { historyData } from "./data/thisData";
 import { Component } from "./show";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 const prophetPredictions = {
   blue: { yhat: 11, yhat_lower: 2, yhat_upper: 14 },
@@ -17,8 +19,8 @@ const prophetPredictions = {
 };
 
 // Adjust weights – give more importance to historical data initially
-const historicalWeight = 0.2;
-const prophetWeight = 0.8;
+const historicalWeight = 0.7;
+const prophetWeight = 0.3;
 const blueBallWeightFactor = 33 / 16;
 
 export default function Home() {
@@ -27,7 +29,7 @@ export default function Home() {
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveStatus, setSaveStatus] = useState<string>("");
 
-  const trainNumber = 16; // 用于训练的历史数据数量
+  const trainNumber = 23; // 用于训练的历史数据数量
 
   useEffect(() => {
     const initializeModel = async () => {
@@ -42,6 +44,11 @@ export default function Home() {
           layers: [
             {
               type: "dense",
+              units: 256,
+              activation: "relu", // 改为ReLU
+            },
+            {
+              type: "dense",
               units: 128,
               activation: "relu", // 改为ReLU
             },
@@ -53,7 +60,7 @@ export default function Home() {
             {
               type: "dense",
               units: 32,
-              activation: "relu",
+              activation: "relu", // 改为 tanh
             },
             {
               type: "dense",
@@ -147,8 +154,8 @@ export default function Home() {
         }
 
         const trainingOptions = {
-          epochs: 150,
-          batchSize: 16,
+          epochs: 370,
+          batchSize: 23,
           validationSplit: 0.2,
         };
 
@@ -251,16 +258,59 @@ export default function Home() {
     trainAndPredict();
   }, [model]);
 
+  // Function to save the trained model
+  const saveModel = async () => {
+    setIsSaving(true);
+    setSaveStatus("Saving model...");
+    try {
+      await model.save(); // Save the model in browser's local storage
+      setSaveStatus("Model saved successfully!");
+    } catch (error) {
+      console.error("Error saving model:", error);
+      setSaveStatus("Error saving model.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
-    <div className="flex justify-center items-center h-screen">
-      {prediction && (
-        <div className="h-3/5">
-          {/* <h2>Predicted Numbers:</h2>
-          <p>Red: {prediction.slice(0, 6).join(", ")}</p>
-          <p>Blue: {prediction[6]}</p> */}
-          <Component visitors={prediction ? prediction.slice(0, 7) : []} />
-        </div>
-      )}
-    </div>
+    <Card className="flex justify-center items-center h-screen flex-col">
+      <CardContent>
+        {prediction && (
+          <div className="h-3/5">
+            <Component visitors={prediction ? prediction.slice(0, 7) : []} />
+          </div>
+        )}
+      </CardContent>
+
+      {/* Save Button */}
+
+      <CardFooter>
+        <Button onClick={saveModel} disabled={isSaving}>
+          {prediction ? (
+            <>
+              {isSaving ? "Saving..." : "Save Model"}
+              {saveStatus && <p>{saveStatus}</p>}
+            </>
+          ) : (
+            <>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="#7c3aed"
+                viewBox="0 0 256 256"
+                className="animate-spin w-6 h-6 mr-2"
+              >
+                <path
+                  d="M224,128a96,96,0,1,1-96-96A96,96,0,0,1,224,128Z"
+                  opacity="0.2"
+                ></path>
+                <path d="M232,128a104,104,0,0,1-208,0c0-41,23.81-78.36,60.66-95.27a8,8,0,0,1,6.68,14.54C60.15,61.59,40,93.27,40,128a88,88,0,0,0,176,0c0-34.73-20.15-66.41-51.34-80.73a8,8,0,0,1,6.68-14.54C208.19,49.64,232,87,232,128Z"></path>
+              </svg>
+              <p>loading...</p>
+            </>
+          )}
+        </Button>
+      </CardFooter>
+    </Card>
   );
 }
