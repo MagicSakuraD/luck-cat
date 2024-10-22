@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import * as tf from "@tensorflow/tfjs";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 
 const prophetPredictions = {
   blue: { yhat: 11, yhat_lower: 2, yhat_upper: 14 },
@@ -18,7 +19,7 @@ const prophetPredictions = {
 
 const historicalWeight = 0.7;
 const prophetWeight = 0.3;
-const blueBallWeightFactor = 1.2;
+const blueBallWeightFactor = 33 / 16;
 
 const normalize = (x: number, mean: number, std: number) =>
   (x - mean) / (std || 1);
@@ -115,6 +116,7 @@ export default function Home() {
       }
 
       const allRedBalls = inputArray.flatMap((entry) => entry.reds);
+
       const allBlueBalls = inputArray.map((entry) => entry.blue);
       const redMean =
         allRedBalls.reduce((a, b) => a + b, 0) / allRedBalls.length;
@@ -172,7 +174,7 @@ export default function Home() {
   return (
     <Card className="flex justify-center items-center h-screen flex-col">
       <CardContent>
-        <textarea
+        <Textarea
           value={userInput}
           onChange={handleUserInput}
           placeholder='请输入历史数据，以JSON数组对象格式 (例如: [{"issue": "24119", "reds": [2, 9, 26, 27, 31, 32], "blue": 14}, {...}])'
@@ -180,14 +182,14 @@ export default function Home() {
         />
         {prediction && (
           <div className="h-3/5">
-            <p>预测结果: {prediction.join(", ")}</p>
+            <p>Result: {prediction.join(", ")}</p>
           </div>
         )}
       </CardContent>
 
       <CardFooter>
         <Button onClick={makePrediction} disabled={!userInput}>
-          预测
+          prophet
         </Button>
       </CardFooter>
     </Card>
