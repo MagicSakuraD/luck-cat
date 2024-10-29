@@ -6,21 +6,22 @@ import { Component } from "./show";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
+// 3 - 9 - 14 - 18 - 23 - 29 - 8
 const prophetPredictions = {
   blue: { yhat: 8, yhat_lower: 2, yhat_upper: 15 },
   red: [
-    { yhat: 4, yhat_lower: 1, yhat_upper: 8 },
+    { yhat: 3, yhat_lower: 1, yhat_upper: 8 },
     { yhat: 9, yhat_lower: 4, yhat_upper: 15 },
-    { yhat: 15, yhat_lower: 9, yhat_upper: 22 },
-    { yhat: 20, yhat_lower: 13, yhat_upper: 27 },
-    { yhat: 25, yhat_lower: 18, yhat_upper: 31 },
-    { yhat: 29, yhat_lower: 24, yhat_upper: 34 },
+    { yhat: 14, yhat_lower: 9, yhat_upper: 22 },
+    { yhat: 18, yhat_lower: 11, yhat_upper: 27 },
+    { yhat: 23, yhat_lower: 18, yhat_upper: 31 },
+    { yhat: 29, yhat_lower: 19, yhat_upper: 33 },
   ],
 };
 
 // Adjust weights – give more importance to historical data initially
-const historicalWeight = 0.7;
-const prophetWeight = 0.3;
+const historicalWeight = 0.9;
+const prophetWeight = 0.1;
 const blueBallWeightFactor = 33 / 16;
 
 export default function Home() {
@@ -314,3 +315,11 @@ export default function Home() {
     </Card>
   );
 }
+
+// 3 - 9 - 14 - 18 - 23 - 29 - 8
+// 1 - 4 - 7 - 11 - 17 - 24 - 2
+// 7 - 15 - 21 - 25 - 29 - 33 - 15
+
+// 5 - 10 - 15 -20 -25 - 29 - 8
+// 1 - 4  - 9 - 13 - 19 - 24 - 2
+// 9 - 16 - 22 - 26 - 31 - 33 - 15
