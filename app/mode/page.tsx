@@ -24,9 +24,11 @@ const MOdePage = () => {
 
   const addInput = () => {
     setInputs([...inputs, ""]);
+    console.log(inputs);
   };
 
   const handleChange = (index: number, value: string) => {
+    console.log(index, value);
     const newInputs = [...inputs];
     newInputs[index] = value;
     setInputs(newInputs);
@@ -40,6 +42,7 @@ const MOdePage = () => {
         // Append new values to the existing arrays
         setRedBalls((prevReds) => [...prevReds, ...newReds]);
         setBlueBalls((prevBlues) => [...prevBlues, newBlue]);
+        console.log(redBalls, blueBalls);
       }
     } else {
       // If input is empty, remove corresponding index values
@@ -56,7 +59,7 @@ const MOdePage = () => {
         ...prevBlues.slice(index + 1),
       ]);
 
-      console.log(redBalls, blueBalls);
+      console.log("🤔", redBalls, blueBalls);
     }
   };
 

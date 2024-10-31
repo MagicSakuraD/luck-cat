@@ -1,21 +1,22 @@
 "use client";
 import { useEffect, useState } from "react";
 import * as tf from "@tensorflow/tfjs";
-import { historyData } from "./data/thisData";
+import { historyData } from "./data/historyData";
 import { Component } from "./show";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-// 3 - 9 - 14 - 18 - 23 - 29 - 8
+// { issue: "24123", reds: [2, 15, 22, 26, 30, 33], blue: 4 },
+// { issue: "24122", reds: [5, 7, 9, 16, 17, 29], blue: 15 },
 const prophetPredictions = {
-  blue: { yhat: 8, yhat_lower: 2, yhat_upper: 15 },
+  blue: { yhat: 4, yhat_lower: 2, yhat_upper: 15 },
   red: [
-    { yhat: 3, yhat_lower: 1, yhat_upper: 8 },
-    { yhat: 9, yhat_lower: 4, yhat_upper: 15 },
-    { yhat: 14, yhat_lower: 9, yhat_upper: 22 },
-    { yhat: 18, yhat_lower: 11, yhat_upper: 27 },
-    { yhat: 23, yhat_lower: 18, yhat_upper: 31 },
-    { yhat: 29, yhat_lower: 19, yhat_upper: 33 },
+    { yhat: 2, yhat_lower: 1, yhat_upper: 10 },
+    { yhat: 15, yhat_lower: 4, yhat_upper: 16 },
+    { yhat: 22, yhat_lower: 8, yhat_upper: 22 },
+    { yhat: 26, yhat_lower: 11, yhat_upper: 27 },
+    { yhat: 30, yhat_lower: 18, yhat_upper: 32 },
+    { yhat: 33, yhat_lower: 23, yhat_upper: 33 },
   ],
 };
 
@@ -30,7 +31,7 @@ export default function Home() {
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveStatus, setSaveStatus] = useState<string>("");
 
-  const trainNumber = 16; // 用于训练的历史数据数量
+  const trainNumber = 24; // 用于训练的历史数据数量
 
   useEffect(() => {
     const initializeModel = async () => {
@@ -156,7 +157,7 @@ export default function Home() {
 
         const trainingOptions = {
           epochs: 370,
-          batchSize: 16,
+          batchSize: 24,
           validationSplit: 0.2,
         };
 
