@@ -32,11 +32,11 @@ interface PredictionResult {
 const prophetPredictions = {
   blue: { yhat: 8, yhat_lower: 2, yhat_upper: 15 },
   red: [
-    { yhat: 4, yhat_lower: 1, yhat_upper: 10 },
-    { yhat: 9, yhat_lower: 4, yhat_upper: 16 },
-    { yhat: 16, yhat_lower: 8, yhat_upper: 22 },
-    { yhat: 20, yhat_lower: 11, yhat_upper: 27 },
-    { yhat: 24, yhat_lower: 18, yhat_upper: 32 },
+    { yhat: 4, yhat_lower: 1, yhat_upper: 14 },
+    { yhat: 9, yhat_lower: 3, yhat_upper: 18 },
+    { yhat: 14, yhat_lower: 7, yhat_upper: 23 },
+    { yhat: 20, yhat_lower: 13, yhat_upper: 27 },
+    { yhat: 25, yhat_lower: 18, yhat_upper: 32 },
     { yhat: 29, yhat_lower: 23, yhat_upper: 33 },
   ],
 };
@@ -81,7 +81,7 @@ export default function Home() {
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveStatus, setSaveStatus] = useState<string>("");
 
-  const trainNumber = 24; // 用于训练的历史数据数量
+  const trainNumber = 32; // 用于训练的历史数据数量
 
   useEffect(() => {
     const initializeModel = async () => {
@@ -92,17 +92,21 @@ export default function Home() {
         const nn = window.ml5.neuralNetwork({
           task: "regression",
           debug: true,
-          learningRate: 0.0001,
+          learningRate: 0.001,
           layers: [
-            // {
-            //   type: "dense",
-            //   units: 256,
-            //   activation: "relu", // 改为ReLU
-            // },
+            {
+              type: "dense",
+              units: 256, // 增大初始层以捕获更多特征
+              activation: "relu", // 使用ReLU避免梯度消失
+            },
+            {
+              type: "dropout",
+              rate: 0.2, // 添加dropout防止过拟合
+            },
             {
               type: "dense",
               units: 128,
-              activation: "relu", // 改为ReLU
+              activation: "relu",
             },
             {
               type: "dense",
@@ -112,17 +116,12 @@ export default function Home() {
             {
               type: "dense",
               units: 32,
-              activation: "relu", // 改为 tanh
-            },
-            {
-              type: "dense",
-              units: 16,
               activation: "relu",
             },
             {
               type: "dense",
-              units: 7, // 输出 7 个数值 (6 个红球 + 1 个蓝球)
-              activation: "linear", // 输出层保持线性激活
+              units: 7, // 输出层保持7个单元
+              activation: "linear", // 因为是回归问题用linear
             },
           ],
         });
@@ -159,7 +158,7 @@ export default function Home() {
         }
 
         const trainingOptions = {
-          epochs: 300,
+          epochs: 240,
           batchSize: trainNumber,
           validationSplit: 0.2,
         };
