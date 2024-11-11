@@ -28,16 +28,17 @@ interface ProphetPredictions {
 interface PredictionResult {
   value: number;
 }
-
+// { issue: "24127", reds: [2, 5, 13, 20, 27, 32], blue: 10 },
+// { issue: "24126", reds: [14, 18, 23, 24, 26, 33], blue: 10 },
 const prophetPredictions = {
   blue: { yhat: 8, yhat_lower: 2, yhat_upper: 15 },
   red: [
-    { yhat: 4, yhat_lower: 1, yhat_upper: 14 },
-    { yhat: 9, yhat_lower: 3, yhat_upper: 18 },
-    { yhat: 14, yhat_lower: 7, yhat_upper: 23 },
+    { yhat: 5, yhat_lower: 1, yhat_upper: 14 },
+    { yhat: 10, yhat_lower: 3, yhat_upper: 18 },
+    { yhat: 15, yhat_lower: 7, yhat_upper: 23 },
     { yhat: 20, yhat_lower: 13, yhat_upper: 27 },
     { yhat: 25, yhat_lower: 18, yhat_upper: 32 },
-    { yhat: 29, yhat_lower: 23, yhat_upper: 33 },
+    { yhat: 30, yhat_lower: 23, yhat_upper: 33 },
   ],
 };
 
@@ -100,10 +101,6 @@ export default function Home() {
               activation: "relu", // 使用ReLU避免梯度消失
             },
             {
-              type: "dropout",
-              rate: 0.2, // 添加dropout防止过拟合
-            },
-            {
               type: "dense",
               units: 128,
               activation: "relu",
@@ -116,7 +113,7 @@ export default function Home() {
             {
               type: "dense",
               units: 32,
-              activation: "relu",
+              activation: "tanh", // 使用tanh激活函数
             },
             {
               type: "dense",
@@ -158,7 +155,7 @@ export default function Home() {
         }
 
         const trainingOptions = {
-          epochs: 240,
+          epochs: 270,
           batchSize: trainNumber,
           validationSplit: 0.2,
         };
