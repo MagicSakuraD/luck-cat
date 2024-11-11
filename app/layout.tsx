@@ -3,6 +3,8 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import Script from "next/script";
 import { ThemeProvider } from "@/components/theme-provider";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -25,11 +27,17 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
-          <Script
-            src="https://unpkg.com/ml5@1.0.1/dist/ml5.js"
-            strategy="beforeInteractive"
-          />
+          <SidebarProvider>
+            <AppSidebar />
+            <main>
+              <SidebarTrigger />
+              {children}
+              <Script
+                src="https://unpkg.com/ml5@1.0.1/dist/ml5.js"
+                strategy="beforeInteractive"
+              />
+            </main>
+          </SidebarProvider>
         </ThemeProvider>
       </body>
     </html>

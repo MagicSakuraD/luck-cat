@@ -216,3 +216,30 @@ export default function Home() {
 //   { "issue": "24103", "reds": [12, 21, 23, 27, 32, 33], "blue": 15 },
 //   { "issue": "24102", "reds": [9, 15, 18, 21, 22, 25], "blue": 1 }
 // ]
+
+{
+  /* <Button onClick={saveModel} disabled={isSaving}>
+          {prediction ? (
+            <>
+              {isSaving ? "Saving..." : "Save Model"}
+              {saveStatus && <p>{saveStatus}</p>}
+            </>
+          ) : (
+            <>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="#7c3aed"
+                viewBox="0 0 256 256"
+                className="animate-spin w-6 h-6 mr-2"
+              >
+                <path
+                  d="M224,128a96,96,0,1,1-96-96A96,96,0,0,1,224,128Z"
+                  opacity="0.2"
+                ></path>
+                <path d="M232,128a104,104,0,0,1-208,0c0-41,23.81-78.36,60.66-95.27a8,8,0,0,1,6.68,14.54C60.15,61.59,40,93.27,40,128a88,88,0,0,0,176,0c0-34.73-20.15-66.41-51.34-80.73a8,8,0,0,1,6.68-14.54C208.19,49.64,232,87,232,128Z"></path>
+              </svg>
+              <p>推理中...</p>
+            </>
+          )}
+        </Button> */
+}
