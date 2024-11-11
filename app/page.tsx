@@ -173,7 +173,7 @@ export default function Home() {
   };
 
   return (
-    <Card className="flex justify-center items-center h-screen flex-col">
+    <Card className="flex justify-center items-center flex-col w-4/5 mx-auto h-5/6 my-8">
       <CardContent>
         {loading ? (
           <div className="flex items-center">
