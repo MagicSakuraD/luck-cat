@@ -5,6 +5,21 @@ import { historyData } from "./data/thisData";
 import { Component } from "./show";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { AppSidebar } from "@/components/app-sidebar";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { Separator } from "@/components/ui/separator";
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 
 interface HistoryEntry {
   issue: string;
@@ -173,37 +188,56 @@ export default function Home() {
   };
 
   return (
-    <Card className="flex justify-center items-center flex-col w-4/5 mx-auto h-5/6 my-8">
-      <CardContent>
-        {loading ? (
-          <div className="flex items-center">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="#7c3aed"
-              viewBox="0 0 256 256"
-              className="animate-spin w-6 h-6 mr-2"
-            >
-              <path
-                d="M224,128a96,96,0,1,1-96-96A96,96,0,0,1,224,128Z"
-                opacity="0.2"
-              ></path>
-              <path d="M232,128a104,104,0,0,1-208,0c0-41,23.81-78.36,60.66-95.27a8,8,0,0,1,6.68,14.54C60.15,61.59,40,93.27,40,128a88,88,0,0,0,176,0c0-34.73-20.15-66.41-51.34-80.73a8,8,0,0,1,6.68-14.54C208.19,49.64,232,87,232,128Z"></path>
-            </svg>
-            <p>推理中...</p>
-          </div>
-        ) : (
-          prediction && (
-            <div className="h-3/5">
-              <Component visitors={prediction ? prediction.slice(0, 7) : []} />
+    <>
+      <header className="sticky top-0 flex shrink-0 items-center gap-2 border-b bg-background p-4">
+        <SidebarTrigger className="-ml-1" />
+        <Separator orientation="vertical" className="mr-2 h-4" />
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem className="hidden md:block">
+              <BreadcrumbLink href="#">All Inboxes</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator className="hidden md:block" />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Inbox</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+      </header>
+      <div className="flex h-full items-center justify-center">
+        <CardContent>
+          {loading ? (
+            <div className="flex items-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="#7c3aed"
+                viewBox="0 0 256 256"
+                className="animate-spin w-6 h-6 mr-2"
+              >
+                <path
+                  d="M224,128a96,96,0,1,1-96-96A96,96,0,0,1,224,128Z"
+                  opacity="0.2"
+                ></path>
+                <path d="M232,128a104,104,0,0,1-208,0c0-41,23.81-78.36,60.66-95.27a8,8,0,0,1,6.68,14.54C60.15,61.59,40,93.27,40,128a88,88,0,0,0,176,0c0-34.73-20.15-66.41-51.34-80.73a8,8,0,0,1,6.68-14.54C208.19,49.64,232,87,232,128Z"></path>
+              </svg>
+              <p>推理中...</p>
             </div>
-          )
-        )}
-      </CardContent>
-      <CardFooter>
-        <Button onClick={trainAndPredict} disabled={loading}>
-          开始
-        </Button>
-      </CardFooter>
-    </Card>
+          ) : (
+            prediction && (
+              <div className="h-3/5">
+                <Component
+                  visitors={prediction ? prediction.slice(0, 7) : []}
+                />
+              </div>
+            )
+          )}
+        </CardContent>
+        <CardFooter>
+          <Button onClick={trainAndPredict} disabled={loading}>
+            开始
+          </Button>
+        </CardFooter>
+      </div>
+    </>
   );
 }

@@ -17,7 +17,7 @@ interface BallData {
   frequent: number;
 }
 
-const MOdePage = () => {
+const StatBoxPage = () => {
   const [inputs, setInputs] = useState<string[]>([""]);
   const [redBalls, setRedBalls] = useState<number[]>([]);
   const [blueBalls, setBlueBalls] = useState<number[]>([]);
@@ -151,4 +151,4 @@ const MOdePage = () => {
   );
 };
 
-export default MOdePage;
+export default StatBoxPage;
