@@ -11,6 +11,20 @@ import {
 } from "@/components/ui/card";
 import { Component } from "./chart";
 import { Button } from "@/components/ui/button";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { Separator } from "@/components/ui/separator";
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 
 interface BallData {
   ball: number;
@@ -84,8 +98,8 @@ const StatBoxPage = () => {
   };
 
   // Get red and blue ball statistics
-  const topRedBalls = getTopFrequent(redBalls, 6);
-  const topBlueBalls = getTopFrequent(blueBalls, 3);
+  const topRedBalls = getTopFrequent(redBalls, 10);
+  const topBlueBalls = getTopFrequent(blueBalls, 5);
 
   // Convert data format for chart component
   const redChartData = topRedBalls.map((item) => ({
@@ -99,55 +113,73 @@ const StatBoxPage = () => {
   }));
 
   return (
-    <Card className="container mx-auto my-36">
-      <CardHeader>
-        <CardTitle>Distribution</CardTitle>
-        <CardDescription>Mode</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-2">
-        {inputs.map((input, index) => (
-          <Input
-            key={index}
-            value={input}
-            onChange={(e) => handleChange(index, e.target.value)}
-            placeholder="Format: num - num - num - num - num - num - num"
-          />
-        ))}
-        <Button onClick={addInput}>Add Input</Button>
+    <>
+      <header className="sticky top-0 flex shrink-0 items-center gap-2 border-b bg-background p-4">
+        <SidebarTrigger className="-ml-1" />
+        <Separator orientation="vertical" className="mr-2 h-4" />
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem className="hidden md:block">
+              <BreadcrumbLink href="#">All Inboxes</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator className="hidden md:block" />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Inbox</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+      </header>
+      <Card className="container mx-auto my-36 w-5/6">
+        <CardHeader>
+          <CardTitle>Distribution</CardTitle>
+          <CardDescription>Mode</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-2">
+          {inputs.map((input, index) => (
+            <Input
+              key={index}
+              value={input}
+              onChange={(e) => handleChange(index, e.target.value)}
+              placeholder="Format: num - num - num - num - num - num - num"
+            />
+          ))}
+          <Button onClick={addInput}>Add Input</Button>
 
-        {/* Red balls chart */}
-        {redChartData.length > 0 && (
-          <div>
-            <h3 className="mb-2">Top 6 Red Balls Chart</h3>
-            <Component data={redChartData} />
-          </div>
-        )}
+          {/* Red balls chart */}
+          {redChartData.length > 0 && (
+            <div>
+              <h3 className="mb-2">Top 10 Red Balls Chart</h3>
+              <Component data={redChartData} />
+            </div>
+          )}
 
-        {/* Blue balls chart */}
-        {blueChartData.length > 0 && (
-          <div className="mt-4">
-            <h3 className="mb-2">Top 3 Blue Balls Chart</h3>
-            <Component data={blueChartData} />
-          </div>
-        )}
-      </CardContent>
-      <CardFooter className="flex flex-col gap-2">
-        <h3>
-          Top 6 Red Balls:{" "}
-          {topRedBalls
-            .map((ball) => `${ball.ball} (${ball.frequent})`)
-            .join(", ")}
-        </h3>
-        <h3>
-          Top 3 Blue Balls:{" "}
-          {topBlueBalls
-            .map((ball) => `${ball.ball} (${ball.frequent})`)
-            .join(", ")}
-        </h3>
-        <div className="text-sm text-gray-500"></div>
-        Total red balls: {redBalls.length}, Total blue balls: {blueBalls.length}
-      </CardFooter>
-    </Card>
+          {/* Blue balls chart */}
+          {blueChartData.length > 0 && (
+            <div className="mt-4">
+              <h3 className="mb-2">Top 5 Blue Balls Chart</h3>
+              <Component data={blueChartData} />
+            </div>
+          )}
+        </CardContent>
+        <CardFooter className="flex flex-col gap-2">
+          <h3>
+            Top 10 Red Balls:{" "}
+            {topRedBalls
+              .map((ball) => `${ball.ball} (${ball.frequent})`)
+              .join(", ")}
+          </h3>
+          <h3>
+            Top 5 Blue Balls:{" "}
+            {topBlueBalls
+              .map((ball) => `${ball.ball} (${ball.frequent})`)
+              .join(", ")}
+          </h3>
+          <div className="text-sm text-gray-500"></div>
+          Total red balls: {redBalls.length}, Total blue balls:{" "}
+          {blueBalls.length}
+        </CardFooter>
+      </Card>
+    </>
   );
 };
 

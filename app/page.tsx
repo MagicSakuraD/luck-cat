@@ -232,11 +232,13 @@ export default function Home() {
             )
           )}
         </CardContent>
-        <CardFooter>
-          <Button onClick={trainAndPredict} disabled={loading}>
-            开始
-          </Button>
-        </CardFooter>
+        {!loading && (
+          <CardFooter>
+            <Button onClick={trainAndPredict} disabled={loading}>
+              开始
+            </Button>
+          </CardFooter>
+        )}
       </div>
     </>
   );
