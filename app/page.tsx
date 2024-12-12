@@ -43,14 +43,14 @@ interface PredictionResult {
 }
 
 const prophetPredictions = {
-  blue: { yhat: 8, yhat_lower: 2, yhat_upper: 15 },
+  blue: { yhat: 8.4, yhat_lower: 2, yhat_upper: 15 },
   red: [
-    { yhat: 5, yhat_lower: 1, yhat_upper: 14 },
-    { yhat: 10, yhat_lower: 3, yhat_upper: 18 },
-    { yhat: 15, yhat_lower: 7, yhat_upper: 23 },
-    { yhat: 20, yhat_lower: 13, yhat_upper: 27 },
-    { yhat: 25, yhat_lower: 18, yhat_upper: 32 },
-    { yhat: 30, yhat_lower: 23, yhat_upper: 33 },
+    { yhat: 3.15, yhat_lower: 1, yhat_upper: 14 },
+    { yhat: 8.18, yhat_lower: 3, yhat_upper: 17 },
+    { yhat: 13.83, yhat_lower: 7, yhat_upper: 23 },
+    { yhat: 18.13, yhat_lower: 13, yhat_upper: 27 },
+    { yhat: 23.38, yhat_lower: 18, yhat_upper: 32 },
+    { yhat: 28.38, yhat_lower: 23, yhat_upper: 33 },
   ],
 };
 
@@ -91,6 +91,7 @@ export default function Home() {
   const [model, setModel] = useState<any>(null);
   const [prediction, setPrediction] = useState<number[] | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const [show, setShow] = useState(true);
 
   const trainNumber = 32;
 
@@ -106,28 +107,32 @@ export default function Home() {
           layers: [
             {
               type: "dense",
+              units: 512,
+              activation: "elu", // 处理初始标准化数据
+            },
+            {
+              type: "dense",
               units: 256,
-              activation: "relu",
+              activation: "elu", // 继续特征提取
             },
             {
               type: "dense",
               units: 128,
-              activation: "relu",
+              activation: "tanh", // 控制数值范围
+            },
+            {
+              type: "dropout",
+              rate: 0.3, // 防止过拟合
             },
             {
               type: "dense",
               units: 64,
-              activation: "relu",
-            },
-            {
-              type: "dense",
-              units: 32,
-              activation: "tanh",
+              activation: "tanh", // 进一步处理
             },
             {
               type: "dense",
               units: 7,
-              activation: "linear",
+              activation: "linear", // 输出层，预测偏差值
             },
           ],
         });
@@ -140,6 +145,7 @@ export default function Home() {
   }, []);
 
   const trainAndPredict = async () => {
+    setShow(false);
     if (model) {
       setLoading(true);
       const standardizedHistoryData = standardizeData(historyData);
@@ -157,7 +163,7 @@ export default function Home() {
       }
 
       const trainingOptions = {
-        epochs: 270,
+        epochs: 120,
         batchSize: trainNumber,
         validationSplit: 0.2,
       };
@@ -175,6 +181,7 @@ export default function Home() {
             console.error(err);
           } else if (Array.isArray(results) && results.length === 7) {
             const standardizedPrediction = results.map((r) => r.value);
+            console.log("Standardized Prediction:", standardizedPrediction);
             const denormalizedPrediction = denormalizePrediction(
               standardizedPrediction
             );
@@ -232,8 +239,8 @@ export default function Home() {
             )
           )}
         </CardContent>
-        {!loading && (
-          <CardFooter>
+        {show && (
+          <CardFooter className="mt-28">
             <Button onClick={trainAndPredict} disabled={loading}>
               开始
             </Button>
