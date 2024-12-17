@@ -45,7 +45,7 @@ interface PredictionResult {
 const prophetPredictions = {
   blue: { yhat: 8.4, yhat_lower: 2, yhat_upper: 15 },
   red: [
-    { yhat: 3.15, yhat_lower: 1, yhat_upper: 14 },
+    { yhat: 3.16, yhat_lower: 1, yhat_upper: 14 },
     { yhat: 8.18, yhat_lower: 3, yhat_upper: 17 },
     { yhat: 13.83, yhat_lower: 7, yhat_upper: 23 },
     { yhat: 18.13, yhat_lower: 13, yhat_upper: 27 },
