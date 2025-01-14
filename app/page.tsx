@@ -43,14 +43,14 @@ interface PredictionResult {
 }
 
 const prophetPredictions = {
-  blue: { yhat: 8.4, yhat_lower: 2, yhat_upper: 15 },
+  blue: { yhat: 8.55, yhat_lower: 2, yhat_upper: 15 },
   red: [
-    { yhat: 3.16, yhat_lower: 1, yhat_upper: 14 },
-    { yhat: 8.18, yhat_lower: 3, yhat_upper: 17 },
-    { yhat: 13.83, yhat_lower: 7, yhat_upper: 23 },
-    { yhat: 18.13, yhat_lower: 13, yhat_upper: 27 },
-    { yhat: 23.38, yhat_lower: 18, yhat_upper: 32 },
-    { yhat: 28.38, yhat_lower: 23, yhat_upper: 33 },
+    { yhat: 3.42, yhat_lower: 1, yhat_upper: 14 },
+    { yhat: 8.28, yhat_lower: 3, yhat_upper: 17 },
+    { yhat: 15.49, yhat_lower: 7, yhat_upper: 23 },
+    { yhat: 20.06, yhat_lower: 13, yhat_upper: 27 },
+    { yhat: 24.02, yhat_lower: 18, yhat_upper: 32 },
+    { yhat: 28.89, yhat_lower: 23, yhat_upper: 33 },
   ],
 };
 
@@ -122,7 +122,7 @@ export default function Home() {
             },
             {
               type: "dropout",
-              rate: 0.3, // 防止过拟合
+              rate: 0.2, // 防止过拟合
             },
             {
               type: "dense",
@@ -163,7 +163,7 @@ export default function Home() {
       }
 
       const trainingOptions = {
-        epochs: 120,
+        epochs: 270,
         batchSize: trainNumber,
         validationSplit: 0.2,
       };
