@@ -1,4 +1,5 @@
 export const historyData = [
+  { issue: "25006", reds: [1, 7, 8, 17, 20, 22], blue: 6 },
   { issue: "25005", reds: [10, 16, 19, 27, 28, 30], blue: 9 },
   { issue: "25004", reds: [3, 7, 17, 27, 29, 32], blue: 4 },
   { issue: "25003", reds: [10, 19, 20, 26, 28, 29], blue: 15 },

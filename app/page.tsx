@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import * as tf from "@tensorflow/tfjs";
-import { historyData } from "./data/thisData";
+// import { historyData } from "./data/thisData";
 import { Component } from "./show";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import { useLotteryData } from "@/hooks/useLotteryData";
 
 interface HistoryEntry {
   issue: string;
@@ -92,6 +93,7 @@ export default function Home() {
   const [prediction, setPrediction] = useState<number[] | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [show, setShow] = useState(true);
+  const { historyData, isLoading, error } = useLotteryData();
 
   const trainNumber = 32;
 
@@ -103,7 +105,7 @@ export default function Home() {
         const nn = window.ml5.neuralNetwork({
           task: "regression",
           debug: true,
-          learningRate: 0.001,
+          learningRate: 0.002,
           layers: [
             {
               type: "dense",
@@ -146,7 +148,7 @@ export default function Home() {
 
   const trainAndPredict = async () => {
     setShow(false);
-    if (model) {
+    if (model && historyData.length > 0) {
       setLoading(true);
       const standardizedHistoryData = standardizeData(historyData);
 
@@ -193,6 +195,14 @@ export default function Home() {
       });
     }
   };
+
+  if (isLoading) {
+    return <div>Loading data...</div>;
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
 
   return (
     <>
