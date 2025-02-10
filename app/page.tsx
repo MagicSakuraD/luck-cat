@@ -95,7 +95,7 @@ export default function Home() {
   const [show, setShow] = useState(true);
   const { historyData, isLoading, error } = useLotteryData();
 
-  const trainNumber = 32;
+  const trainNumber = 12;
 
   useEffect(() => {
     const initializeModel = async () => {
@@ -150,6 +150,8 @@ export default function Home() {
     setShow(false);
     if (model && historyData.length > 0) {
       setLoading(true);
+      // console.log("thisdata", thisData);
+      console.log(historyData);
       const standardizedHistoryData = standardizeData(historyData);
 
       for (let i = standardizedHistoryData.length - 1; i >= trainNumber; i--) {
@@ -165,7 +167,7 @@ export default function Home() {
       }
 
       const trainingOptions = {
-        epochs: 270,
+        epochs: 120,
         batchSize: trainNumber,
         validationSplit: 0.2,
       };
