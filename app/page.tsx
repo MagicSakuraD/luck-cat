@@ -95,7 +95,7 @@ export default function Home() {
   const [show, setShow] = useState(true);
   const { historyData, isLoading, error } = useLotteryData();
 
-  const trainNumber = 12;
+  const trainNumber = 21;
 
   useEffect(() => {
     const initializeModel = async () => {
@@ -167,7 +167,7 @@ export default function Home() {
       }
 
       const trainingOptions = {
-        epochs: 120,
+        epochs: 210,
         batchSize: trainNumber,
         validationSplit: 0.2,
       };
