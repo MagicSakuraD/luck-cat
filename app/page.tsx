@@ -105,7 +105,7 @@ export default function Home() {
         const nn = window.ml5.neuralNetwork({
           task: "regression",
           debug: true,
-          learningRate: 0.002,
+          learningRate: 0.001,
           layers: [
             {
               type: "dense",
