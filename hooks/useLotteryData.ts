@@ -9,7 +9,7 @@ export function useLotteryData() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch("/api/scrape");
+        const response = await fetch("/api/scrape", { cache: "no-store" });
         const result: ScrapeResponse = await response.json();
 
         if (!result.success || !result.data) {

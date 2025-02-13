@@ -1,3 +1,6 @@
+// 在 /api/scrape/route.ts 顶部添加
+export const dynamic = "force-dynamic"; // 强制每次请求都动态处理
+
 import axios from "axios";
 import * as cheerio from "cheerio";
 import { NextResponse } from "next/server";
