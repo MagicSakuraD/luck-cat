@@ -30,6 +30,8 @@ export async function GET() {
       }
     });
 
+    console.log("Scraped Data:", data);
+
     return NextResponse.json({
       success: true,
       data,
