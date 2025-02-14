@@ -44,14 +44,14 @@ interface PredictionResult {
 }
 
 const prophetPredictions = {
-  blue: { yhat: 8.55, yhat_lower: 2, yhat_upper: 15 },
+  blue: { yhat: 8, yhat_lower: 2, yhat_upper: 15 },
   red: [
-    { yhat: 3.42, yhat_lower: 1, yhat_upper: 14 },
-    { yhat: 8.28, yhat_lower: 3, yhat_upper: 17 },
-    { yhat: 15.49, yhat_lower: 7, yhat_upper: 23 },
-    { yhat: 20.06, yhat_lower: 13, yhat_upper: 27 },
-    { yhat: 24.02, yhat_lower: 18, yhat_upper: 32 },
-    { yhat: 28.89, yhat_lower: 23, yhat_upper: 33 },
+    { yhat: 2.75, yhat_lower: 1, yhat_upper: 14 },
+    { yhat: 8.25, yhat_lower: 3, yhat_upper: 17 },
+    { yhat: 13.75, yhat_lower: 7, yhat_upper: 23 },
+    { yhat: 19.25, yhat_lower: 13, yhat_upper: 27 },
+    { yhat: 24.75, yhat_lower: 18, yhat_upper: 32 },
+    { yhat: 30.25, yhat_lower: 23, yhat_upper: 33 },
   ],
 };
 
@@ -95,7 +95,7 @@ export default function Home() {
   const [show, setShow] = useState(true);
   const { historyData, isLoading, error } = useLotteryData();
 
-  const trainNumber = 21;
+  const trainNumber = 12;
 
   useEffect(() => {
     const initializeModel = async () => {
@@ -105,7 +105,7 @@ export default function Home() {
         const nn = window.ml5.neuralNetwork({
           task: "regression",
           debug: true,
-          learningRate: 0.001,
+          learningRate: 0.002,
           layers: [
             {
               type: "dense",
@@ -167,7 +167,7 @@ export default function Home() {
       }
 
       const trainingOptions = {
-        epochs: 210,
+        epochs: 200,
         batchSize: trainNumber,
         validationSplit: 0.2,
       };
@@ -199,11 +199,19 @@ export default function Home() {
   };
 
   if (isLoading) {
-    return <div>Loading data...</div>;
+    return (
+      <div className="text-center w-full mt-20 text-blue-600 font-bold text-lg">
+        Loading data...
+      </div>
+    );
   }
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return (
+      <div className="text-center w-full mt-20 text-rose-600 font-bold text-lg">
+        Error: {error}
+      </div>
+    );
   }
 
   return (
