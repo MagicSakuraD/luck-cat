@@ -38,12 +38,12 @@ export default function RootLayout({
               } as React.CSSProperties
             }
           >
-            <AppSidebar />
+            {/* <AppSidebar /> */}
             <SidebarInset>
               <main className="">
                 {children}
                 <Script
-                  src="https://unpkg.com/ml5@1.0.1/dist/ml5.js"
+                  src="https://unpkg.com/ml5@1.2.1/dist/ml5.js"
                   strategy="beforeInteractive"
                 />
               </main>
