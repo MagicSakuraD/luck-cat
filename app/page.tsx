@@ -131,7 +131,7 @@ const prophetPredictions = {
     { yhat: 8.21, yhat_lower: 3, yhat_upper: 17 },
     { yhat: 12.27, yhat_lower: 7, yhat_upper: 23 },
     { yhat: 21.28, yhat_lower: 13, yhat_upper: 27 },
-    { yhat: 23.7, yhat_lower: 18, yhat_upper: 32 },
+    { yhat: 23.23, yhat_lower: 18, yhat_upper: 32 },
     { yhat: 28.77, yhat_lower: 23, yhat_upper: 33 },
   ],
 };
@@ -181,7 +181,7 @@ export default function Home() {
   const [show, setShow] = useState(true);
   const { historyData, isLoading, error } = useLotteryData();
 
-  const trainNumber = 7;
+  const trainNumber = 12;
 
   useEffect(() => {
     const initializeModels = async () => {
@@ -237,7 +237,7 @@ export default function Home() {
 
     // Rest of your function remains the same...
     const trainingOptions = {
-      epochs: 200,
+      epochs: 228,
       batchSize: trainNumber,
       validationSplit: 0.2,
     };
