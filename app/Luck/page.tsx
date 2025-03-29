@@ -1,245 +1,482 @@
 "use client";
 import { useEffect, useState } from "react";
-import * as tf from "@tensorflow/tfjs";
+// 移除不需要的TensorFlow导入
+import { Component } from "../show";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { AppSidebar } from "@/components/app-sidebar";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
+import { Separator } from "@/components/ui/separator";
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
+import { useLotteryData } from "@/hooks/useLotteryData";
 
-const prophetPredictions = {
-  blue: { yhat: 11, yhat_lower: 2, yhat_upper: 14 },
-  red: [
-    { yhat: 7, yhat_lower: 1, yhat_upper: 8 },
-    { yhat: 13, yhat_lower: 4, yhat_upper: 15 },
-    { yhat: 15, yhat_lower: 7, yhat_upper: 26 },
-    { yhat: 21, yhat_lower: 14, yhat_upper: 27 },
-    { yhat: 31, yhat_lower: 19, yhat_upper: 31 },
-    { yhat: 33, yhat_lower: 24, yhat_upper: 33 },
-  ],
-};
+interface HistoryEntry {
+  issue: string;
+  reds: number[];
+  blue: number;
+}
 
-const historicalWeight = 0.7;
-const prophetWeight = 0.3;
-const blueBallWeightFactor = 33 / 16;
+// 不再需要PredictionResult接口，因为我们不使用ml5模型
+interface StatOption {
+  number: number;
+  score: number;
+}
 
-const normalize = (x: number, mean: number, std: number) =>
-  (x - mean) / (std || 1);
+// 常量定义
+const RED_MAX = 33; // 红球最大号码
+const BLUE_MAX = 16; // 蓝球最大号码
+const TRAIN_NUMBER = 12; // 训练时使用的历史期数
 
-const preprocessData = (
-  data: { reds: number[]; blue: number },
-  redMean: number,
-  redStd: number,
-  blueMean: number,
-  blueStd: number
-) => {
-  const redBalls = data.reds.sort((a, b) => a - b);
-  const blueBall = data.blue;
-
-  const normalizedRedBalls = redBalls.map((ball) =>
-    normalize(ball, redMean, redStd)
-  );
-  const normalizedBlueBall = normalize(blueBall, blueMean, blueStd);
-
-  const prophetRedDiffs = prophetPredictions.red.map((pred, index) =>
-    index === 0 ? pred.yhat : pred.yhat - prophetPredictions.red[index - 1].yhat
-  );
-  const prophetRedFeatures = prophetRedDiffs.map((diff) =>
-    normalize(diff, redMean, redStd)
-  );
-  const prophetBlueFeature = normalize(
-    prophetPredictions.blue.yhat,
-    blueMean,
-    blueStd
-  );
-
-  const weightedRedBalls = normalizedRedBalls.map(
-    (val) => val * historicalWeight
-  );
-  const weightedBlueBall =
-    normalizedBlueBall * historicalWeight * blueBallWeightFactor;
-
-  const weightedProphetRedBalls = prophetRedFeatures.map(
-    (val) => val * prophetWeight
-  );
-  const weightedProphetBlueBall =
-    prophetBlueFeature * prophetWeight * blueBallWeightFactor;
-
-  return [
-    ...weightedRedBalls,
-    weightedBlueBall,
-    ...weightedProphetRedBalls,
-    weightedProphetBlueBall,
-  ];
-};
+// 定义统计模型配置 - 每个模型使用不同的参数组合
+const modelConfigurations = [
+  // 模型1: 历史频率优先
+  {
+    name: "历史频率",
+    weights: {
+      frequency: 0.6, // 历史频率权重
+      recent: 0.2, // 最近号码权重
+      uniqueness: 0.1, // 多样性权重
+      random: 0.1, // 随机因素权重
+    },
+  },
+  // 模型2: 最近趋势优先
+  {
+    name: "最近趋势",
+    weights: {
+      frequency: 0.3,
+      recent: 0.5,
+      uniqueness: 0.1,
+      random: 0.1,
+    },
+  },
+  // 模型3: 平衡策略
+  {
+    name: "平衡策略",
+    weights: {
+      frequency: 0.4,
+      recent: 0.3,
+      uniqueness: 0.2,
+      random: 0.1,
+    },
+  },
+];
 
 export default function Home() {
-  const [model, setModel] = useState<any>(null);
-  const [prediction, setPrediction] = useState<number[] | null>(null);
-  const [userInput, setUserInput] = useState<string>("");
+  const [modelPredictions, setModelPredictions] = useState<number[][]>([]);
+  const [aggregatedPrediction, setAggregatedPrediction] = useState<
+    number[] | null
+  >(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [currentStep, setCurrentStep] = useState<string>("");
+  const [progress, setProgress] = useState<number>(0);
+  const [show, setShow] = useState(true);
+  const { historyData, isLoading, error } = useLotteryData();
 
-  useEffect(() => {
-    const initializeModel = async () => {
-      if (typeof window !== "undefined" && window.ml5) {
-        await tf.ready();
+  // 准备训练数据
+  const prepareTrainingData = (position: number, isBlue = false) => {
+    if (!historyData || historyData.length < TRAIN_NUMBER + 1) return null;
 
-        const nn = window.ml5.neuralNetwork({
-          task: "regression",
-          debug: true,
-        });
+    const trainingData = [];
 
-        const modelInfo = {
-          model: "/model/model.json",
-          metadata: "/model/model_meta.json",
-          weights: "/model/model.weights.bin",
-        };
-
-        await nn.load(modelInfo);
-        setModel(nn);
+    // 从历史数据末尾开始，向前遍历
+    for (let i = historyData.length - 1; i >= TRAIN_NUMBER; i--) {
+      // 输入特征：过去12期的号码
+      let inputs = [];
+      for (let j = i; j > i - TRAIN_NUMBER; j--) {
+        if (j < 0 || j >= historyData.length) continue;
+        let entry = historyData[j];
+        if (!entry || !entry.reds || !entry.blue) continue;
+        inputs.push(...entry.reds, entry.blue);
       }
-    };
 
-    initializeModel();
-  }, []);
+      // 输出目标：下一期的号码
+      const nextEntryIndex = i - TRAIN_NUMBER;
+      if (nextEntryIndex < 0 || nextEntryIndex >= historyData.length) continue;
 
-  const handleUserInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setUserInput(e.target.value);
+      const nextEntry = historyData[nextEntryIndex];
+      if (!nextEntry || !nextEntry.reds || nextEntry.blue === undefined)
+        continue;
+
+      // 安全地访问数据
+      const target = isBlue
+        ? nextEntry.blue.toString() // 蓝球（作为字符串标签）
+        : (nextEntry.reds[position] || position + 1).toString(); // 特定位置的红球，如果没有则使用默认值
+
+      trainingData.push({ inputs, output: target });
+    }
+
+    return trainingData;
   };
 
-  const makePrediction = async () => {
-    if (!model) return;
+  // 统计预测函数 - 使用模型配置中的权重参数
+  const predictWithStats = async (
+    position: number,
+    isBlue: boolean,
+    modelIndex: number
+  ): Promise<number> => {
+    console.log(
+      `开始统计预测 ${isBlue ? "蓝球" : "红球" + position} (模型${
+        modelIndex + 1
+      })`
+    );
 
     try {
-      const inputArray = JSON.parse(userInput);
+      // 使用训练数据集
+      const trainingData = prepareTrainingData(position, isBlue);
 
-      if (!Array.isArray(inputArray) || inputArray.length === 0) {
-        alert("请输入有效的数组对象");
-        return;
+      if (!trainingData || trainingData.length === 0) {
+        console.log(`没有训练数据，使用默认值`);
+        return isBlue ? 1 : position + 1;
       }
 
-      const allRedBalls = inputArray.flatMap((entry) => entry.reds);
+      // 获取当前模型的权重配置
+      const weights = modelConfigurations[modelIndex].weights;
+      const maxNum = isBlue ? BLUE_MAX : RED_MAX;
 
-      const allBlueBalls = inputArray.map((entry) => entry.blue);
-      const redMean =
-        allRedBalls.reduce((a, b) => a + b, 0) / allRedBalls.length;
-      const redStd = Math.sqrt(
-        allRedBalls.reduce((a, b) => a + Math.pow(b - redMean, 2), 0) /
-          allRedBalls.length
-      );
-      const blueMean =
-        allBlueBalls.reduce((a, b) => a + b, 0) / allBlueBalls.length;
-      const blueStd = Math.sqrt(
-        allBlueBalls.reduce((a, b) => a + Math.pow(b - blueMean, 2), 0) /
-          allBlueBalls.length
-      );
+      // 分析历史数据的频率分布
+      const frequency: Record<string, number> = {};
+      const recent: Record<string, number> = {}; // 最近几期的权重更高
 
-      const processedInput = inputArray.map((entry) =>
-        preprocessData(entry, redMean, redStd, blueMean, blueStd)
-      );
+      // 为所有可能的号码设置基础频率
+      for (let i = 1; i <= maxNum; i++) {
+        frequency[i.toString()] = 0;
+        recent[i.toString()] = 0;
+      }
 
-      const denormalizeRed = (x: number) => x * (redStd || 1) + redMean;
-      const denormalizeBlue = (x: number) => x * (blueStd || 1) + blueMean;
+      // 计算历史频率
+      trainingData.forEach((item, index) => {
+        if (!item.output) return;
+        frequency[item.output] = (frequency[item.output] || 0) + 1;
 
-      model.predict(processedInput, (results: any, err: any) => {
-        if (err) {
-          console.error(err, "something went wrong");
-        } else {
-          if (Array.isArray(results) && results.length === 7) {
-            const adjustedPrediction = results.map((r, index) => {
-              let value;
-              if (index < 6) {
-                value = Math.round(denormalizeRed(r.value));
-                const prophetPred = prophetPredictions.red[index];
-                value = Math.max(
-                  Math.min(value, prophetPred.yhat_upper),
-                  prophetPred.yhat_lower
-                );
-              } else {
-                value = Math.round(denormalizeBlue(r.value));
-                value = Math.max(
-                  Math.min(value, prophetPredictions.blue.yhat_upper),
-                  prophetPredictions.blue.yhat_lower
-                );
-              }
-              return Math.max(1, Math.min(index < 6 ? 33 : 16, value));
-            });
-            setPrediction(adjustedPrediction);
-          }
+        // 最近5期的号码权重更高
+        if (index < 5) {
+          recent[item.output] = (recent[item.output] || 0) + (5 - index); // 越近权重越高
         }
       });
+
+      // 计算一致性和多样性指标
+      const consistencyScore: Record<string, number> = {};
+      const uniquenessScore: Record<string, number> = {};
+
+      // 检查历史数据中号码的分布模式
+      for (let i = 1; i <= maxNum; i++) {
+        const num = i.toString();
+        // 一致性基于历史频率
+        consistencyScore[num] = (frequency[num] || 0) / trainingData.length;
+
+        // 多样性指标 - 如果这个号码很少出现，给它一个机会
+        uniquenessScore[num] = 1 - consistencyScore[num];
+      }
+
+      // 综合评分 (使用模型配置的权重)
+      const finalScores: Record<string, number> = {};
+
+      for (let i = 1; i <= maxNum; i++) {
+        const num = i.toString();
+        // 使用模型配置的权重计算综合得分
+        const recentWeight = recent[num] ? recent[num] / 15 : 0; // 归一化，最高15分
+
+        finalScores[num] =
+          weights.frequency * consistencyScore[num] +
+          weights.recent * recentWeight +
+          weights.uniqueness * uniquenessScore[num] +
+          weights.random * Math.random();
+      }
+
+      // 将评分转换为排序列表
+      const sortedNumbers = Object.entries(finalScores)
+        .map(([num, score]) => ({ number: parseInt(num), score }))
+        .sort((a, b) => b.score - a.score);
+
+      // 选择策略
+      // 85%的时间选择前5名中的一个，15%的时间随机选择
+      if (Math.random() < 0.85 && sortedNumbers.length >= 5) {
+        // 加权随机选择前5名
+        const top5 = sortedNumbers.slice(0, 5);
+        const totalWeight = top5.reduce((sum, item) => sum + item.score, 0);
+        let randomWeight = Math.random() * totalWeight;
+
+        for (const item of top5) {
+          randomWeight -= item.score;
+          if (randomWeight <= 0) {
+            return item.number;
+          }
+        }
+        return top5[0].number; // 防止浮点误差
+      } else {
+        // 完全随机选择
+        return Math.floor(Math.random() * maxNum) + 1;
+      }
     } catch (error) {
-      alert("输入格式错误，请输入有效的JSON数组对象");
-      console.error("Error parsing input:", error);
+      console.error(`预测错误:`, error);
+      return isBlue ? 1 : position + 1;
     }
   };
 
+  // 运行所有模型的预测
+  const runAllModels = async () => {
+    setShow(false);
+    setLoading(true);
+    setModelPredictions([]);
+    setProgress(0);
+
+    try {
+      const allPredictions: number[][] = [];
+
+      // 对每个模型配置进行预测
+      for (
+        let modelIndex = 0;
+        modelIndex < modelConfigurations.length;
+        modelIndex++
+      ) {
+        try {
+          setCurrentStep(
+            `计算模型 ${modelIndex + 1}/${modelConfigurations.length}`
+          );
+
+          const modelPredictions: number[] = [];
+
+          // 预测红球
+          for (let position = 0; position < 6; position++) {
+            setCurrentStep(
+              `预测红球 ${position + 1}/6 (模型 ${modelIndex + 1})`
+            );
+
+            try {
+              const prediction = await predictWithStats(
+                position,
+                false,
+                modelIndex
+              );
+              modelPredictions.push(prediction);
+            } catch (err) {
+              console.error(`红球${position + 1}预测失败:`, err);
+              // 使用默认值
+              modelPredictions.push(position + 1);
+            }
+
+            // 更新进度
+            setProgress(
+              ((position + modelIndex * 7) / (modelConfigurations.length * 7)) *
+                100
+            );
+          }
+
+          // 预测蓝球
+          setCurrentStep(`预测蓝球 (模型 ${modelIndex + 1})`);
+          try {
+            const bluePrediction = await predictWithStats(0, true, modelIndex);
+            modelPredictions.push(bluePrediction);
+          } catch (err) {
+            console.error("蓝球预测失败:", err);
+            modelPredictions.push(1); // 默认值
+          }
+
+          // 添加到所有预测
+          allPredictions.push(modelPredictions);
+          setModelPredictions([...allPredictions]);
+
+          // 更新进度
+          setProgress(((modelIndex + 1) / modelConfigurations.length) * 100);
+        } catch (modelError) {
+          console.error(`模型 ${modelIndex + 1} 处理失败:`, modelError);
+          // 继续下一个模型
+          continue;
+        }
+      }
+
+      // 所有模型完成后，计算聚合预测
+      if (allPredictions.length > 0) {
+        const aggregated = aggregatePredictions(allPredictions);
+        setAggregatedPrediction(aggregated);
+      }
+    } catch (error) {
+      console.error("预测过程中发生错误:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 聚合预测结果
+  const aggregatePredictions = (predictions: number[][]): number[] => {
+    // 红球票选结果
+    const redResults = [];
+
+    for (let pos = 0; pos < 6; pos++) {
+      const counters: Record<number, number> = {};
+
+      // 统计每个号码在该位置的出现次数
+      predictions.forEach((pred) => {
+        if (!pred || pred.length <= pos) return;
+        const val = pred[pos];
+        counters[val] = (counters[val] || 0) + 1;
+      });
+
+      // 找出出现最多次的号码
+      let maxCount = 0;
+      let mostFrequent = pos + 1; // 默认值
+
+      Object.entries(counters).forEach(([numStr, count]) => {
+        const num = parseInt(numStr);
+        if (count > maxCount) {
+          maxCount = count;
+          mostFrequent = num;
+        }
+      });
+
+      redResults.push(mostFrequent);
+    }
+
+    // 确保红球不重复并排序
+    const uniqueReds = Array.from(new Set(redResults));
+    while (uniqueReds.length < 6) {
+      const randomNum = Math.floor(Math.random() * RED_MAX) + 1;
+      if (!uniqueReds.includes(randomNum)) {
+        uniqueReds.push(randomNum);
+      }
+    }
+    const sortedReds = [...uniqueReds].sort((a, b) => a - b);
+
+    // 蓝球票选结果
+    const blueCounters: Record<number, number> = {};
+    predictions.forEach((pred) => {
+      if (!pred || pred.length < 7) return;
+      const blue = pred[6];
+      blueCounters[blue] = (blueCounters[blue] || 0) + 1;
+    });
+
+    let maxBlueCount = 0;
+    let mostFrequentBlue = 1; // 默认值
+
+    Object.entries(blueCounters).forEach(([numStr, count]) => {
+      const num = parseInt(numStr);
+      if (count > maxBlueCount) {
+        maxBlueCount = count;
+        mostFrequentBlue = num;
+      }
+    });
+
+    // 返回完整预测结果
+    return [...sortedReds.slice(0, 6), mostFrequentBlue];
+  };
+
+  // 加载状态展示
+  if (isLoading) {
+    return (
+      <div className="text-center w-full mt-20 text-blue-600 font-bold text-lg">
+        加载数据中...
+      </div>
+    );
+  }
+
+  // 错误状态展示
+  if (error) {
+    return (
+      <div className="text-center w-full mt-20 text-rose-600 font-bold text-lg">
+        错误: {error}
+      </div>
+    );
+  }
+
   return (
-    <Card className="flex justify-center items-center h-screen flex-col">
-      <CardContent>
-        <Textarea
-          value={userInput}
-          onChange={handleUserInput}
-          placeholder='请输入历史数据，以JSON数组对象格式 (例如: [{"issue": "24119", "reds": [2, 9, 26, 27, 31, 32], "blue": 14}, {...}])'
-          className="w-full p-2 mb-4 border rounded"
-        />
-        {prediction && (
-          <div className="h-3/5">
-            <p>Result: {prediction.join(", ")}</p>
-          </div>
-        )}
-      </CardContent>
-
-      <CardFooter>
-        <Button onClick={makePrediction} disabled={!userInput}>
-          prophet
-        </Button>
-      </CardFooter>
-    </Card>
-  );
-}
-
-// [
-//   { "issue": "24119", "reds": [2, 9, 26, 27, 31, 32], "blue": 14 },
-//   { "issue": "24118", "reds": [2, 3, 4, 6, 11, 15], "blue": 14 },
-//   { "issue": "24117", "reds": [3, 12, 14, 16, 29, 32], "blue": 12 },
-//   { "issue": "24116", "reds": [1, 15, 20, 22, 31, 32], "blue": 3 },
-//   { "issue": "24115", "reds": [3, 10, 11, 19, 27, 28], "blue": 7 },
-//   { "issue": "24114", "reds": [7, 11, 18, 24, 27, 32], "blue": 4 },
-//   { "issue": "24113", "reds": [4, 5, 23, 24, 26, 31], "blue": 11 },
-//   { "issue": "24112", "reds": [8, 11, 16, 25, 29, 32], "blue": 3 },
-//   { "issue": "24111", "reds": [1, 4, 11, 12, 22, 30], "blue": 16 },
-//   { "issue": "24110", "reds": [4, 13, 17, 23, 25, 33], "blue": 14 },
-//   { "issue": "24109", "reds": [3, 4, 24, 28, 29, 33], "blue": 9 },
-//   { "issue": "24108", "reds": [1, 8, 9, 23, 24, 30], "blue": 8 },
-//   { "issue": "24107", "reds": [1, 6, 8, 13, 17, 19], "blue": 9 },
-//   { "issue": "24106", "reds": [3, 8, 11, 22, 31, 33], "blue": 4 },
-//   { "issue": "24105", "reds": [2, 5, 17, 19, 29, 33], "blue": 4 },
-//   { "issue": "24104", "reds": [5, 16, 23, 24, 26, 29], "blue": 4 },
-//   { "issue": "24103", "reds": [12, 21, 23, 27, 32, 33], "blue": 15 },
-//   { "issue": "24102", "reds": [9, 15, 18, 21, 22, 25], "blue": 1 }
-// ]
-
-{
-  /* <Button onClick={saveModel} disabled={isSaving}>
-          {prediction ? (
-            <>
-              {isSaving ? "Saving..." : "Save Model"}
-              {saveStatus && <p>{saveStatus}</p>}
-            </>
+    <>
+      <header className="sticky top-0 flex shrink-0 items-center gap-2 border-b bg-background p-4">
+        <SidebarTrigger className="-ml-1" />
+        <Separator orientation="vertical" className="mr-2 h-4" />
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem className="hidden md:block">
+              <BreadcrumbLink href="#">预测</BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator className="hidden md:block" />
+            <BreadcrumbItem>
+              <BreadcrumbPage>统计方法预测</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+      </header>
+      <div className="flex flex-col h-full items-center justify-center">
+        <CardContent className="w-full max-w-3xl">
+          {loading ? (
+            <div className="flex flex-col items-center gap-4">
+              <div className="flex items-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="#7c3aed"
+                  viewBox="0 0 256 256"
+                  className="animate-spin w-6 h-6 mr-2"
+                >
+                  <path
+                    d="M224,128a96,96,0,1,1-96-96A96,96,0,0,1,224,128Z"
+                    opacity="0.2"
+                  ></path>
+                  <path d="M232,128a104,104,0,0,1-208,0c0-41,23.81-78.36,60.66-95.27a8,8,0,0,1,6.68,14.54C60.15,61.59,40,93.27,40,128a88,88,0,0,0,176,0c0-34.73-20.15-66.41-51.34-80.73a8,8,0,0,1,6.68-14.54C208.19,49.64,232,87,232,128Z"></path>
+                </svg>
+                <p>
+                  {currentStep} ({Math.round(progress)}%)
+                </p>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2.5">
+                <div
+                  className="bg-blue-600 h-2.5 rounded-full"
+                  style={{ width: `${progress}%` }}
+                ></div>
+              </div>
+            </div>
           ) : (
             <>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="#7c3aed"
-                viewBox="0 0 256 256"
-                className="animate-spin w-6 h-6 mr-2"
-              >
-                <path
-                  d="M224,128a96,96,0,1,1-96-96A96,96,0,0,1,224,128Z"
-                  opacity="0.2"
-                ></path>
-                <path d="M232,128a104,104,0,0,1-208,0c0-41,23.81-78.36,60.66-95.27a8,8,0,0,1,6.68,14.54C60.15,61.59,40,93.27,40,128a88,88,0,0,0,176,0c0-34.73-20.15-66.41-51.34-80.73a8,8,0,0,1,6.68-14.54C208.19,49.64,232,87,232,128Z"></path>
-              </svg>
-              <p>推理中...</p>
+              {aggregatedPrediction && (
+                <div className="mb-8">
+                  <h2 className="text-xl font-bold mb-4 text-center">
+                    最终预测结果 (统计方法)
+                  </h2>
+                  <Component visitors={aggregatedPrediction} />
+                </div>
+              )}
+
+              {modelPredictions.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-bold mt-8 mb-4">
+                    各模型预测结果
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {modelPredictions.map((pred, idx) => (
+                      <div key={idx} className="border rounded-md p-4">
+                        <h4 className="font-medium mb-2">
+                          {modelConfigurations[idx].name}
+                        </h4>
+                        <Component visitors={pred} />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           )}
-        </Button> */
+        </CardContent>
+        {show && (
+          <CardFooter className="mt-8">
+            <Button
+              onClick={runAllModels}
+              disabled={loading}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              开始预测 (统计方法)
+            </Button>
+          </CardFooter>
+        )}
+      </div>
+    </>
+  );
 }

@@ -55,7 +55,7 @@ const modelConfigurations = [
     layers: [
       { type: "dense", units: 256, activation: "relu" },
       { type: "dense", units: 192, activation: "relu" },
-      { type: "dropout", rate: 0.3 },
+      { type: "dropout", rate: 0.27 },
       { type: "dense", units: 128, activation: "relu" },
       // 建议替换tanh为relu或elu
       { type: "dense", units: 64, activation: "relu" }, // 改为relu
@@ -69,7 +69,7 @@ const modelConfigurations = [
       { type: "dense", units: 192, activation: "elu" },
 
       { type: "dense", units: 128, activation: "elu" },
-      { type: "dropout", rate: 0.25 },
+      { type: "dropout", rate: 0.27 },
       { type: "dense", units: 64, activation: "elu" },
       { type: "dense", units: 7, activation: "linear" },
     ],
@@ -79,7 +79,7 @@ const modelConfigurations = [
     learningRate: 0.003,
     layers: [
       { type: "dense", units: 128, activation: "relu" },
-      { type: "dropout", rate: 0.2 },
+      { type: "dropout", rate: 0.27 },
       { type: "dense", units: 64, activation: "relu" },
       // 保持激活函数一致性
       { type: "dense", units: 32, activation: "relu" }, // 改为relu
@@ -91,7 +91,7 @@ const modelConfigurations = [
     learningRate: 0.0015,
     layers: [
       { type: "dense", units: 320, activation: "selu" },
-      { type: "dropout", rate: 0.35 },
+      { type: "dropout", rate: 0.28 },
       { type: "dense", units: 160, activation: "selu" },
       { type: "dense", units: 7, activation: "linear" },
     ],
@@ -102,7 +102,7 @@ const modelConfigurations = [
     layers: [
       { type: "dense", units: 256, activation: "relu" },
       { type: "dense", units: 192, activation: "relu" },
-      { type: "dropout", rate: 0.3 },
+      { type: "dropout", rate: 0.28 },
       { type: "dense", units: 128, activation: "relu" },
       { type: "dense", units: 64, activation: "relu" },
       { type: "dense", units: 32, activation: "tanh" },
@@ -116,7 +116,7 @@ const modelConfigurations = [
       // sigmoid在深层网络中可能导致梯度消失
       { type: "dense", units: 128, activation: "relu" }, // 改为relu
       { type: "dense", units: 128, activation: "relu" }, // 改为relu
-      { type: "dropout", rate: 0.15 },
+      { type: "dropout", rate: 0.27 },
       { type: "dense", units: 96, activation: "tanh" }, // 可以考虑改为relu
       { type: "dense", units: 64, activation: "tanh" }, // 可以考虑改为relu
       { type: "dense", units: 7, activation: "linear" },
@@ -125,14 +125,14 @@ const modelConfigurations = [
 ];
 
 const prophetPredictions = {
-  blue: { yhat: 3.14, yhat_lower: 2, yhat_upper: 15 },
+  blue: { yhat: 1.14, yhat_lower: 2, yhat_upper: 15 },
   red: [
-    { yhat: 4.27, yhat_lower: 1, yhat_upper: 14 },
-    { yhat: 8.21, yhat_lower: 3, yhat_upper: 17 },
-    { yhat: 12.27, yhat_lower: 7, yhat_upper: 23 },
+    { yhat: 2.27, yhat_lower: 1, yhat_upper: 14 },
+    { yhat: 7.21, yhat_lower: 3, yhat_upper: 17 },
+    { yhat: 10.27, yhat_lower: 7, yhat_upper: 23 },
     { yhat: 21.28, yhat_lower: 13, yhat_upper: 27 },
     { yhat: 23.23, yhat_lower: 18, yhat_upper: 32 },
-    { yhat: 28.77, yhat_lower: 23, yhat_upper: 33 },
+    { yhat: 28.27, yhat_lower: 23, yhat_upper: 33 },
   ],
 };
 
