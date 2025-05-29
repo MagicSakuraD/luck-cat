@@ -38,36 +38,66 @@ const RED_MAX = 33; // 红球最大号码
 const BLUE_MAX = 16; // 蓝球最大号码
 const TRAIN_NUMBER = 12; // 训练时使用的历史期数
 
-// 定义统计模型配置 - 每个模型使用不同的参数组合
+// Enhanced statistical model configurations with optimized weights
 const modelConfigurations = [
-  // 模型1: 历史频率优先
+  // 模型1: 频率与趋势平衡
   {
-    name: "历史频率",
+    name: "频率趋势平衡",
     weights: {
-      frequency: 0.6, // 历史频率权重
-      recent: 0.2, // 最近号码权重
-      uniqueness: 0.1, // 多样性权重
-      random: 0.1, // 随机因素权重
+      frequency: 0.45,
+      recent: 0.35,
+      uniqueness: 0.15,
+      random: 0.05,
     },
   },
-  // 模型2: 最近趋势优先
+  // 模型2: 最近热号优先
   {
-    name: "最近趋势",
+    name: "热号追踪",
     weights: {
-      frequency: 0.3,
-      recent: 0.5,
+      frequency: 0.25,
+      recent: 0.55,
       uniqueness: 0.1,
       random: 0.1,
     },
   },
-  // 模型3: 平衡策略
+  // 模型3: 冷号回补策略
   {
-    name: "平衡策略",
+    name: "冷号回补",
     weights: {
-      frequency: 0.4,
+      frequency: 0.2,
+      recent: 0.2,
+      uniqueness: 0.5,
+      random: 0.1,
+    },
+  },
+  // 模型4: 均衡策略
+  {
+    name: "均衡策略",
+    weights: {
+      frequency: 0.35,
+      recent: 0.25,
+      uniqueness: 0.25,
+      random: 0.15,
+    },
+  },
+  // 模型5: 历史主导
+  {
+    name: "历史主导",
+    weights: {
+      frequency: 0.6,
+      recent: 0.2,
+      uniqueness: 0.1,
+      random: 0.1,
+    },
+  },
+  // 模型6: 随机融合
+  {
+    name: "随机融合",
+    weights: {
+      frequency: 0.3,
       recent: 0.3,
       uniqueness: 0.2,
-      random: 0.1,
+      random: 0.2,
     },
   },
 ];

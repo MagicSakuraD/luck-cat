@@ -47,78 +47,35 @@ interface ModelConfig {
   layers: any[];
 }
 
-// Define modelConfigurations at component level
+// Optimized neural network configurations for lottery prediction
+// Note: Neural networks are not ideal for truly random lottery prediction
 const modelConfigurations = [
-  // 模型1: 深层网络
+  // 模型1: 简化ReLU网络 - 一致激活函数
   {
     learningRate: 0.001,
     layers: [
-      { type: "dense", units: 256, activation: "relu" },
-      { type: "dense", units: 192, activation: "relu" },
-      { type: "dropout", rate: 0.27 },
-      { type: "dense", units: 128, activation: "relu" },
-      // 建议替换tanh为relu或elu
-      { type: "dense", units: 64, activation: "relu" }, // 改为relu
-      { type: "dense", units: 7, activation: "linear" },
-    ],
-  },
-  // 模型2: 中等复杂度ELU激活
-  {
-    learningRate: 0.002,
-    layers: [
-      { type: "dense", units: 192, activation: "elu" },
-
-      { type: "dense", units: 128, activation: "elu" },
-      { type: "dropout", rate: 0.27 },
-      { type: "dense", units: 64, activation: "elu" },
-      { type: "dense", units: 7, activation: "linear" },
-    ],
-  },
-  // 模型3: 简单结构高学习率
-  {
-    learningRate: 0.003,
-    layers: [
-      { type: "dense", units: 128, activation: "relu" },
-      { type: "dropout", rate: 0.27 },
       { type: "dense", units: 64, activation: "relu" },
-      // 保持激活函数一致性
-      { type: "dense", units: 32, activation: "relu" }, // 改为relu
+      { type: "dropout", rate: 0.3 },
+      { type: "dense", units: 32, activation: "relu" },
       { type: "dense", units: 7, activation: "linear" },
     ],
   },
-  // 模型4: 宽而浅的网络
+  // 模型2: ELU激活 - 自归一化特性
   {
     learningRate: 0.0015,
     layers: [
-      { type: "dense", units: 320, activation: "selu" },
-      { type: "dropout", rate: 0.28 },
-      { type: "dense", units: 160, activation: "selu" },
+      { type: "dense", units: 48, activation: "elu" },
+      { type: "dropout", rate: 0.25 },
+      { type: "dense", units: 24, activation: "elu" },
       { type: "dense", units: 7, activation: "linear" },
     ],
   },
-  // 模型5: 深度递减网络
+  // 模型3: 浅层网络 - 防止过拟合
   {
-    learningRate: 0.0025,
+    learningRate: 0.002,
     layers: [
-      { type: "dense", units: 256, activation: "relu" },
-      { type: "dense", units: 192, activation: "relu" },
-      { type: "dropout", rate: 0.28 },
-      { type: "dense", units: 128, activation: "relu" },
-      { type: "dense", units: 64, activation: "relu" },
-      { type: "dense", units: 32, activation: "tanh" },
-      { type: "dense", units: 7, activation: "linear" },
-    ],
-  },
-  // 模型6: 低学习率稳定网络 4 - 7 - 12 - 18 - 21 - 30 - 10
-  {
-    learningRate: 0.0008,
-    layers: [
-      // sigmoid在深层网络中可能导致梯度消失
-      { type: "dense", units: 128, activation: "relu" }, // 改为relu
-      { type: "dense", units: 128, activation: "relu" }, // 改为relu
-      { type: "dropout", rate: 0.27 },
-      { type: "dense", units: 96, activation: "tanh" }, // 可以考虑改为relu
-      { type: "dense", units: 64, activation: "tanh" }, // 可以考虑改为relu
+      { type: "dense", units: 32, activation: "relu" },
+      { type: "dropout", rate: 0.4 },
       { type: "dense", units: 7, activation: "linear" },
     ],
   },
