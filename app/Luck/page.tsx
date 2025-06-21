@@ -39,6 +39,13 @@ const BLUE_MAX = 16; // 蓝球最大号码
 const TRAIN_NUMBER = 12; // 训练时使用的历史期数
 
 // Enhanced statistical model configurations with optimized weights
+//
+// 关于本福特定律 (Benford's Law) 偏向的说明：
+// 本福特定律表明在许多自然数据集中，小数字（如1,2,3）作为首位数字出现的频率
+// 比大数字更高。虽然理论上彩票号码是均匀分布的，但我们添加这个偏向作为一种
+// "非理性扰动"，用于实验不同的预测策略。这个偏向权重通常很小（0.01-0.02），
+// 仅作为多元化预测策略的一部分。
+//
 const modelConfigurations = [
   // 模型1: 频率与趋势平衡
   {
@@ -48,6 +55,7 @@ const modelConfigurations = [
       recent: 0.35,
       uniqueness: 0.15,
       random: 0.05,
+      benfordBias: 0.01, // 本福特偏向（非理性扰动）
     },
   },
   // 模型2: 最近热号优先
@@ -58,6 +66,7 @@ const modelConfigurations = [
       recent: 0.55,
       uniqueness: 0.1,
       random: 0.1,
+      benfordBias: 0.0, // 不需要此扰动
     },
   },
   // 模型3: 冷号回补策略
@@ -68,6 +77,7 @@ const modelConfigurations = [
       recent: 0.2,
       uniqueness: 0.5,
       random: 0.1,
+      benfordBias: 0.01, // 轻微扰动
     },
   },
   // 模型4: 均衡策略
@@ -78,6 +88,7 @@ const modelConfigurations = [
       recent: 0.25,
       uniqueness: 0.25,
       random: 0.15,
+      benfordBias: 0.0,
     },
   },
   // 模型5: 历史主导
@@ -88,6 +99,7 @@ const modelConfigurations = [
       recent: 0.2,
       uniqueness: 0.1,
       random: 0.1,
+      benfordBias: 0.0,
     },
   },
   // 模型6: 随机融合
@@ -98,6 +110,7 @@ const modelConfigurations = [
       recent: 0.3,
       uniqueness: 0.2,
       random: 0.2,
+      benfordBias: 0.02, // 较高扰动
     },
   },
 ];
@@ -148,8 +161,7 @@ export default function Home() {
 
     return trainingData;
   };
-
-  // 统计预测函数 - 使用模型配置中的权重参数
+  // 统计预测函数 - 增强版，加入更多统计学特征
   const predictWithStats = async (
     position: number,
     isBlue: boolean,
@@ -162,65 +174,98 @@ export default function Home() {
     );
 
     try {
-      // 使用训练数据集
       const trainingData = prepareTrainingData(position, isBlue);
-
       if (!trainingData || trainingData.length === 0) {
         console.log(`没有训练数据，使用默认值`);
         return isBlue ? 1 : position + 1;
       }
 
-      // 获取当前模型的权重配置
       const weights = modelConfigurations[modelIndex].weights;
       const maxNum = isBlue ? BLUE_MAX : RED_MAX;
 
-      // 分析历史数据的频率分布
+      // 基础频率分析
       const frequency: Record<string, number> = {};
-      const recent: Record<string, number> = {}; // 最近几期的权重更高
+      const recent: Record<string, number> = {};
 
-      // 为所有可能的号码设置基础频率
+      // 新增统计学特征
+      const intervalAnalysis: Record<string, number> = {}; // 间隔分析
+      const positionBias: Record<string, number> = {}; // 位置偏向
+      const cyclicPattern: Record<string, number> = {}; // 周期性模式
+
+      // 初始化
       for (let i = 1; i <= maxNum; i++) {
-        frequency[i.toString()] = 0;
-        recent[i.toString()] = 0;
+        const key = i.toString();
+        frequency[key] = 0;
+        recent[key] = 0;
+        intervalAnalysis[key] = 0;
+        positionBias[key] = 0;
+        cyclicPattern[key] = 0;
       }
 
-      // 计算历史频率
+      // 分析历史数据
       trainingData.forEach((item, index) => {
         if (!item.output) return;
-        frequency[item.output] = (frequency[item.output] || 0) + 1;
+        const num = item.output;
 
-        // 最近5期的号码权重更高
+        // 基础频率
+        frequency[num] = (frequency[num] || 0) + 1;
+
+        // 最近趋势权重
         if (index < 5) {
-          recent[item.output] = (recent[item.output] || 0) + (5 - index); // 越近权重越高
+          recent[num] = (recent[num] || 0) + (5 - index);
         }
+
+        // 间隔分析 - 计算号码出现的间隔模式
+        const lastAppearance = trainingData.findIndex(
+          (data, i) => i > index && data.output === num
+        );
+        if (lastAppearance !== -1) {
+          const interval = lastAppearance - index;
+          intervalAnalysis[num] += 1 / Math.max(interval, 1); // 间隔越小权重越高
+        }
+
+        // 周期性模式分析 - 检查是否有7天、14天等周期
+        const weekPattern = index % 7;
+        const biWeekPattern = index % 14;
+        cyclicPattern[num] +=
+          (weekPattern === 0 ? 0.1 : 0) + (biWeekPattern === 0 ? 0.05 : 0);
       });
 
-      // 计算一致性和多样性指标
-      const consistencyScore: Record<string, number> = {};
-      const uniquenessScore: Record<string, number> = {};
-
-      // 检查历史数据中号码的分布模式
-      for (let i = 1; i <= maxNum; i++) {
-        const num = i.toString();
-        // 一致性基于历史频率
-        consistencyScore[num] = (frequency[num] || 0) / trainingData.length;
-
-        // 多样性指标 - 如果这个号码很少出现，给它一个机会
-        uniquenessScore[num] = 1 - consistencyScore[num];
-      }
-
-      // 综合评分 (使用模型配置的权重)
+      // 计算综合评分
       const finalScores: Record<string, number> = {};
 
       for (let i = 1; i <= maxNum; i++) {
         const num = i.toString();
-        // 使用模型配置的权重计算综合得分
-        const recentWeight = recent[num] ? recent[num] / 15 : 0; // 归一化，最高15分
 
+        // 标准化各项指标
+        const freqScore = (frequency[num] || 0) / trainingData.length;
+        const recentScore = (recent[num] || 0) / 15;
+        const intervalScore = intervalAnalysis[num] || 0;
+        const cyclicScore = cyclicPattern[num] || 0;
+
+        // 多样性指标 - 避免过度集中
+        const uniquenessScore = 1 - freqScore; // 数字和谐性 - 相邻数字的关联性（轻微的偏向）
+        const neighborEffect = isBlue
+          ? 0
+          : (((frequency[(i - 1).toString()] || 0) +
+              (frequency[(i + 1).toString()] || 0)) /
+              (trainingData.length * 2)) *
+            0.1;
+
+        // 本福特定律偏向 - 小数字有更高的概率（非理性扰动）
+        // 根据本福特定律，数字1的概率约为30.1%，随数字增大而递减
+        const benfordScore = Math.log10(1 + 1 / i); // 本福特定律公式
+        const normalizedBenfordScore = benfordScore / Math.log10(2); // 标准化到0-1范围
+
+        // 综合评分（加权求和）
         finalScores[num] =
-          weights.frequency * consistencyScore[num] +
-          weights.recent * recentWeight +
-          weights.uniqueness * uniquenessScore[num] +
+          weights.frequency * freqScore +
+          weights.recent * recentScore +
+          weights.uniqueness * uniquenessScore +
+          0.1 * intervalScore +
+          0.05 * cyclicScore +
+          0.05 * neighborEffect +
+          weights.benfordBias * normalizedBenfordScore +
           weights.random * Math.random();
       }
 
@@ -337,46 +382,45 @@ export default function Home() {
       setLoading(false);
     }
   };
-
-  // 聚合预测结果
+  // 聚合预测结果 - 改进版，防止重复
   const aggregatePredictions = (predictions: number[][]): number[] => {
-    // 红球票选结果
-    const redResults = [];
-
-    for (let pos = 0; pos < 6; pos++) {
-      const counters: Record<number, number> = {};
-
-      // 统计每个号码在该位置的出现次数
-      predictions.forEach((pred) => {
-        if (!pred || pred.length <= pos) return;
-        const val = pred[pos];
-        counters[val] = (counters[val] || 0) + 1;
-      });
-
-      // 找出出现最多次的号码
-      let maxCount = 0;
-      let mostFrequent = pos + 1; // 默认值
-
-      Object.entries(counters).forEach(([numStr, count]) => {
-        const num = parseInt(numStr);
-        if (count > maxCount) {
-          maxCount = count;
-          mostFrequent = num;
-        }
-      });
-
-      redResults.push(mostFrequent);
+    // 统计所有红球号码的总体频率
+    const globalRedFreq: Record<number, number> = {};
+    for (let i = 1; i <= RED_MAX; i++) {
+      globalRedFreq[i] = 0;
     }
 
-    // 确保红球不重复并排序
-    const uniqueReds = Array.from(new Set(redResults));
-    while (uniqueReds.length < 6) {
+    // 统计每个模型预测的红球频率
+    predictions.forEach((pred) => {
+      if (!pred || pred.length < 6) return;
+      for (let i = 0; i < 6; i++) {
+        const num = pred[i];
+        if (num >= 1 && num <= RED_MAX) {
+          globalRedFreq[num] = (globalRedFreq[num] || 0) + 1;
+        }
+      }
+    });
+
+    // 按频率排序，选择频率最高的6个不重复号码
+    const sortedByFreq = Object.entries(globalRedFreq)
+      .map(([numStr, freq]) => ({ num: parseInt(numStr), freq }))
+      .sort((a, b) => {
+        if (b.freq !== a.freq) return b.freq - a.freq; // 频率优先
+        return Math.random() - 0.5; // 频率相同时随机排序
+      });
+
+    // 选择前6个号码作为红球
+    const selectedReds = sortedByFreq.slice(0, 6).map((item) => item.num);
+
+    // 如果频率都相同（极少情况），补充随机号码
+    while (selectedReds.length < 6) {
       const randomNum = Math.floor(Math.random() * RED_MAX) + 1;
-      if (!uniqueReds.includes(randomNum)) {
-        uniqueReds.push(randomNum);
+      if (!selectedReds.includes(randomNum)) {
+        selectedReds.push(randomNum);
       }
     }
-    const sortedReds = [...uniqueReds].sort((a, b) => a - b);
+
+    const sortedReds = selectedReds.sort((a, b) => a - b);
 
     // 蓝球票选结果
     const blueCounters: Record<number, number> = {};
@@ -466,15 +510,18 @@ export default function Home() {
             </div>
           ) : (
             <>
+              {" "}
               {aggregatedPrediction && (
                 <div className="mb-8">
                   <h2 className="text-xl font-bold mb-4 text-center">
                     最终预测结果 (统计方法)
                   </h2>
+                  <p className="text-sm text-gray-600 text-center mb-4">
+                    基于多模型聚合，包含频率分析、趋势预测、本福特定律等多种统计学方法
+                  </p>
                   <Component visitors={aggregatedPrediction} />
                 </div>
               )}
-
               {modelPredictions.length > 0 && (
                 <div>
                   <h3 className="text-lg font-bold mt-8 mb-4">
