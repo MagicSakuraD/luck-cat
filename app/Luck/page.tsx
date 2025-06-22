@@ -346,9 +346,7 @@ export default function Home() {
               ((position + modelIndex * 7) / (modelConfigurations.length * 7)) *
                 100
             );
-          }
-
-          // 预测蓝球
+          } // 预测蓝球
           setCurrentStep(`预测蓝球 (模型 ${modelIndex + 1})`);
           try {
             const bluePrediction = await predictWithStats(0, true, modelIndex);
@@ -358,8 +356,18 @@ export default function Home() {
             modelPredictions.push(1); // 默认值
           }
 
+          // 应用红球去重和排序优化 🎯
+          const optimizedPrediction =
+            ensureUniqueAndSortedRedBalls(modelPredictions);
+          console.log(
+            `模型 ${modelIndex + 1} (${
+              modelConfigurations[modelIndex].name
+            }) 去重排序后:`,
+            optimizedPrediction
+          );
+
           // 添加到所有预测
-          allPredictions.push(modelPredictions);
+          allPredictions.push(optimizedPrediction);
           setModelPredictions([...allPredictions]);
 
           // 更新进度
@@ -439,10 +447,91 @@ export default function Home() {
         maxBlueCount = count;
         mostFrequentBlue = num;
       }
-    });
+    }); // 返回完整预测结果，确保红球已排序
+    const finalResult = [...sortedReds.slice(0, 6), mostFrequentBlue];
+    console.log("聚合预测结果 (已排序):", finalResult);
+    return finalResult;
+  };
 
-    // 返回完整预测结果
-    return [...sortedReds.slice(0, 6), mostFrequentBlue];
+  // 红球去重和排序优化函数
+  const ensureUniqueAndSortedRedBalls = (prediction: number[]): number[] => {
+    const redBalls = prediction.slice(0, 6);
+    const blueBall = prediction[6];
+
+    // 去重红球
+    const uniqueReds = Array.from(
+      new Set(redBalls.filter((num) => num >= 1 && num <= RED_MAX))
+    );
+
+    if (uniqueReds.length === 6) {
+      // 没有重复且数量正确，直接排序返回
+      return [...uniqueReds.sort((a, b) => a - b), blueBall];
+    }
+
+    // 需要补充号码
+    const usedNumbers = new Set(uniqueReds);
+    const finalReds = [...uniqueReds];
+
+    // 为缺少的球位选择新号码，使用统计学策略
+    while (finalReds.length < 6) {
+      let newNumber;
+
+      // 30% 概率选择统计学上的"温和数字" (中位数附近)
+      if (Math.random() < 0.3) {
+        const mildNumbers = [14, 15, 16, 17, 18, 19, 20].filter(
+          (n) => !usedNumbers.has(n)
+        );
+        if (mildNumbers.length > 0) {
+          newNumber =
+            mildNumbers[Math.floor(Math.random() * mildNumbers.length)];
+        }
+      }
+
+      // 25% 概率选择"边缘数字" (1-10, 24-33)
+      if (!newNumber && Math.random() < 0.25) {
+        const edgeNumbers = [];
+        for (let i = 1; i <= 10; i++) {
+          if (!usedNumbers.has(i)) edgeNumbers.push(i);
+        }
+        for (let i = 24; i <= 33; i++) {
+          if (!usedNumbers.has(i)) edgeNumbers.push(i);
+        }
+        if (edgeNumbers.length > 0) {
+          newNumber =
+            edgeNumbers[Math.floor(Math.random() * edgeNumbers.length)];
+        }
+      }
+
+      // 其余情况：均匀随机选择
+      if (!newNumber) {
+        const candidates = [];
+        for (let i = 1; i <= RED_MAX; i++) {
+          if (!usedNumbers.has(i)) {
+            candidates.push(i);
+          }
+        }
+
+        if (candidates.length > 0) {
+          newNumber = candidates[Math.floor(Math.random() * candidates.length)];
+        } else {
+          // 最后兜底：直接赋值
+          for (let i = 1; i <= RED_MAX; i++) {
+            if (!usedNumbers.has(i)) {
+              newNumber = i;
+              break;
+            }
+          }
+        }
+      }
+
+      if (newNumber) {
+        finalReds.push(newNumber);
+        usedNumbers.add(newNumber);
+      }
+    }
+
+    // 返回排序后的红球 + 蓝球
+    return [...finalReds.sort((a, b) => a - b), blueBall];
   };
 
   // 加载状态展示
@@ -515,17 +604,29 @@ export default function Home() {
                 <div className="mb-8">
                   <h2 className="text-xl font-bold mb-4 text-center">
                     最终预测结果 (统计方法)
-                  </h2>
+                  </h2>{" "}
                   <p className="text-sm text-gray-600 text-center mb-4">
                     基于多模型聚合，包含频率分析、趋势预测、本福特定律等多种统计学方法
+                    <br />
+                    <span className="text-green-600 font-medium">
+                      ✓ 红球自动去重排序 (1-33)
+                    </span>{" "}
+                    |
+                    <span className="text-blue-600 font-medium">
+                      蓝球范围 (1-16)
+                    </span>
                   </p>
                   <Component visitors={aggregatedPrediction} />
                 </div>
               )}
               {modelPredictions.length > 0 && (
                 <div>
+                  {" "}
                   <h3 className="text-lg font-bold mt-8 mb-4">
-                    各模型预测结果
+                    各模型预测结果{" "}
+                    <span className="text-sm font-normal text-gray-500">
+                      (红球已排序去重)
+                    </span>
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {modelPredictions.map((pred, idx) => (
